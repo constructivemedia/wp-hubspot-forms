@@ -414,7 +414,7 @@ add_filter(
 - The plugin's script renders each form into its container. The shortcode no longer prints inline scripts.
 - Legacy forms get a HubSpot `formInstanceId`, which HubSpot appends to the form's and fields' element ids, as in `hsForm_{form id}_enquiry-1`. The suffix changes with every render, so CSS and scripts should select by class or attribute instead of those ids.
 - `CMHubspotForms` setters apply asynchronously, once the form is ready. Its getters return v4 values as of the last read.
-- The `atts` filter receives the attributes merged with the settings, and its result goes through the old pipeline: mode and region are normalised, the old reserved attributes are removed, and `null`, `""`, `false` and `0` values are dropped rather than sent, as the old plugin did. Clearing a field with `null` from `atts` therefore works once the layer is off.
+- The `atts` filter keeps its name, so old and new callbacks share it and it raises no notice. Its result goes through the old pipeline: `mode` and `region` are normalised, and an unknown `mode` renders as `legacy` instead of being rejected. Values from `atts` keep this plugin's meaning (`null` clears, `0` and `false` are values); only the old `form_data` filter's values and the automatic website values are dropped when empty, as the old plugin did.
 
 ## Development
 

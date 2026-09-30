@@ -25,17 +25,29 @@ final class DeprecatedTest extends TestCase {
 		add_filter( 'constructivemedia/hubspot/forms/settings', static fn( array $settings ) => [ 'portal_id' => '123' ] + $settings );
 	}
 
-	public function test_old_region_default_and_portal_filter_but_no_built_in_portal(): void {
+	/** The layer alone, without the portal setUp() adds. */
+	private function withoutPortal(): void {
 		$GLOBALS['test_filters'] = [];
 		register( 'wp-hubspot-forms.php' );
-		$this->assertSame( '', ( new Shortcode() )( [ 'form_id' => self::FORM ] ), 'Without a portal, nothing renders.' );
+	}
 
+	public function test_no_built_in_portal(): void {
+		$this->withoutPortal();
+
+		$this->assertSame( '', ( new Shortcode() )( [ 'form_id' => self::FORM ] ) );
+	}
+
+	public function test_old_portal_and_region_filters(): void {
+		$this->withoutPortal();
 		add_filter( self::OLD . 'portal_id', static fn() => 999 );
+
 		$this->assertSame( [ '999', 'ap1' ], array_values( array_intersect_key( ShortcodeTest::render( [ 'form_id' => self::FORM ] )[0], [ 'portal_id' => 1, 'region' => 1 ] ) ) );
+	}
 
-		$this->setUp();
+	public function test_new_settings_filter_wins_over_the_old_portal_filter(): void {
 		add_filter( self::OLD . 'portal_id', static fn() => 999 );
-		$this->assertSame( '123', ShortcodeTest::render( [ 'form_id' => self::FORM ] )[0]['portal_id'], 'The new settings filter wins over the old one.' );
+
+		$this->assertSame( '123', ShortcodeTest::render( [ 'form_id' => self::FORM ] )[0]['portal_id'] );
 	}
 
 	public function test_form_data_snippet_from_existing_sites(): void {
@@ -64,22 +76,23 @@ final class DeprecatedTest extends TestCase {
 		$this->assertSame( [ 'zero' => '0' ], array_intersect_key( $data['scopes']['instance'], [ 'listing_url' => 1, 'count' => 1, 'zero' => 1 ] ) );
 	}
 
-	public function test_atts_callbacks_go_through_the_old_pipeline_once(): void {
+	public function test_atts_callbacks_run_once_and_keep_their_values(): void {
 		$calls = 0;
 		add_filter(
 			'constructivemedia/hubspot/forms/atts',
 			static function ( array $atts ) use ( &$calls ): array {
 				++$calls;
-				return [ 'mode' => ' Modern ' ] + $atts + [ 'listing_url' => false, 'note' => '', 'listing_id' => 'L1' ];
+				return [ 'mode' => ' Modern ' ] + $atts + [ 'listing_url' => false, 'note' => null, 'count' => 0, 'on_submit' => 'redirect', 'on_submit_url' => 'https://example.com/thanks' ];
 			}
 		);
 
 		[ $data, $html ] = ShortcodeTest::render( [ 'form_id' => self::FORM ] );
-		apply_filters( 'do_shortcode_tag', $html, 'hubspot', [ 'form_id' => self::FORM ] );
+		$after           = apply_filters( 'do_shortcode_tag', $html, 'hubspot', [ 'form_id' => self::FORM ] );
 
 		$this->assertSame( 1, $calls, 'Rendering runs the atts filter once, including the after-render step.' );
 		$this->assertSame( 'modern', $data['mode'] );
-		$this->assertSame( [ 'listing_id' => 'L1' ], array_intersect_key( $data['scopes']['instance'], [ 'listing_url' => 1, 'note' => 1, 'listing_id' => 1 ] ), 'Empty values are skipped while the layer is on.' );
+		$this->assertSame( [ 'listing_url' => false, 'note' => null, 'count' => '0' ], array_intersect_key( $data['scopes']['instance'], [ 'listing_url' => 1, 'note' => 1, 'count' => 1 ] ), 'Values from atts keep their meaning.' );
+		$this->assertStringEndsWith( 'data-redirect="https://example.com/thanks" data-delay="1"></template>', $after, 'on_submit set from atts still renders its template.' );
 	}
 
 	public function test_form_create_options_gets_the_old_seed(): void {

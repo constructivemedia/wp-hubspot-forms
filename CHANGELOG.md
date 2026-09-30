@@ -12,23 +12,12 @@ Moves the plugin's names under the `constructivemedia` convention shared by Cons
 - **JavaScript global** is now `window.wp_hubspot_forms`, replacing `window.WPHubSpotForms`. The early-queue pattern becomes `(window.wp_hubspot_forms ||= []).push(...)`.
 - **JavaScript events** are now `constructivemedia/hubspot/forms/ready`, `.../apply` and `.../submitted`, replacing `wphsf:ready`, `wphsf:apply` and `wphsf:submitted`.
 - **PHP namespace** is now `ConstructiveMedia\HubSpot\Forms`, replacing `WpHubspotForms`. Only code that referenced the `Shortcode` class or the `VERSION` constant directly is affected.
-- **The deprecated layer no longer supplies the old plugin's portal ID.** Set `portal_id` with `constructivemedia/hubspot/forms/settings`; without one, forms don't render.
 
 Unchanged: the `[hubspot]` shortcode and its attributes, the `wp-hubspot-forms` script handle, the `wp-hubspot-form` container class and its `data-wphsf` attribute, and every deprecated hook, attribute and `CMHubspotForms` method.
 
 ### Changed
 
-- The old `atts` filter and the new one now share a name, so the deprecated layer applies the old plugin's conversions after every `atts` callback, and no deprecation notice is raised for it. While the layer is on, `null`, `""`, `false` and `0` values from `atts` are dropped, as the old plugin did.
-- Requires PHP 8.1 instead of 8.4.
-- Installable with Composer (`composer/installers`) into `wp-content/plugins`.
-- A new-editor form placed in legacy mode always warns in the console.
-
-### Fixed
-
-- Legacy dropdowns and checkboxes keep their selection when an option is rejected.
-- `set()` calls apply in the order they were made, including a forced call followed by an unforced one.
-- A form removed during `set()` reports `pending`, not `no-field`.
-- A container that returns to the page keeps its instance key, also when two containers requested the same key.
+- The old `atts` filter and the new one share a name, so the deprecated layer applies the old plugin's conversions after every `atts` callback and raises no deprecation notice for it. Values from `atts` keep their meaning; only the old `form_data` filter's values and the automatic website values are dropped when empty. While the layer is on, an unknown `mode` renders as `legacy`.
 
 ## 1.0.0 - 2026-09-28
 
@@ -43,13 +32,14 @@ First release. Replaces Constructive Media HubSpot Forms 5.0.0 and its older `hu
 - New-editor forms placed in legacy mode switch to `modern-iframe`.
 - The `wphsf:ready`, `wphsf:apply` and `wphsf:submitted` events, and `inspect()` and `debug` for troubleshooting.
 - The `wp_hubspot_forms_legacy` filter, to turn the deprecated layer off.
+- Installable with Composer (`composer/installers`) into `wp-content/plugins`. Requires PHP 8.1 and WordPress 6.7.
 
 ### Deprecated, to be removed in 2.0
 
 Everything from Constructive Media HubSpot Forms keeps working and raises a deprecation notice when used. See "Upgrading" in README.md.
 
 - The `constructivemedia/hubspot/forms/*` filters and actions.
-- The built-in defaults: the old plugin's portal ID and region ap1.
+- The built-in default region, ap1.
 - The `name`, `on_submit`, `on_submit_url`, `on_submit_html`, `on_submit_delay` and `gated_url` attributes, and the `hs-form-wrapper hs-form-{name} hs-form-mode-{mode}` classes.
 - The automatic `website`, `website_url`, `form_id` and `portal_id` values.
 - Loading HubSpot's legacy library (`hsforms-loader`) and the old helper on every page.
@@ -57,6 +47,7 @@ Everything from Constructive Media HubSpot Forms keeps working and raises a depr
 
 ### Changed from Constructive Media HubSpot Forms
 
+- The built-in portal ID is gone. Set `portal_id` with the settings filter; without one, forms don't render.
 - The plugin's script renders each form into its container; the shortcode no longer prints inline scripts.
 - Legacy forms get a HubSpot `formInstanceId`, which HubSpot appends to the form's and fields' element ids.
 - The old helper's setters apply asynchronously, and its getters return v4 values as of the last read.

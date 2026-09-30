@@ -48,9 +48,6 @@ Yes. Values from PHP are part of the cached page, so set visitor-specific values
 
 = 1.0.1 =
 * Hooks, events, the JavaScript global and the PHP namespace move under the constructivemedia naming convention. See CHANGELOG.md for the renames.
-* The deprecated layer no longer supplies the old plugin's portal ID: set portal_id with constructivemedia/hubspot/forms/settings.
-* Requires PHP 8.1. Installable with Composer.
-* Fixes for rejected options, the order of set() calls, removed forms and duplicate instance keys.
 
 = 1.0.0 =
 * First release. Replaces Constructive Media HubSpot Forms 5.0.0.

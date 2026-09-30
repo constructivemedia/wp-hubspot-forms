@@ -108,8 +108,25 @@ function atts( array $atts ): array {
 	$atts['options'] = create_options( $atts );
 
 	do_action_deprecated( OLD . 'before_render', [ $atts ], SINCE, 'constructivemedia/hubspot/forms/atts' );
+	filtered( $atts );
 
 	return array_intersect_key( $atts, array_flip( Shortcode::RESERVED ) ) + $values;
+}
+
+/**
+ * Hands the filtered attributes from atts() to after_render(). The shortcode renders and the
+ * do_shortcode_tag filter runs straight after, so one slot is enough; reading it empties it.
+ *
+ * @param array|null $set The attributes to keep, or null to take them.
+ * @return array The attributes kept before this call.
+ */
+function filtered( ?array $set = null ): array {
+	static $kept = [];
+
+	$current = $kept;
+	$kept    = $set ?? [];
+
+	return $current;
 }
 
 /**
@@ -134,17 +151,22 @@ function form_data( array $atts ): array {
 	// get_website_entry_url() is defined by the site, when at all.
 	$website = function_exists( 'get_website_entry_url' ) ? \get_website_entry_url() : null;
 
-	$data = [
+	$own      = array_diff_key( $atts, array_flip( $reserved ) );
+	$defaults = [
 		'website'     => $website,
 		'website_url' => $website,
-		...array_diff_key( $atts, array_flip( $reserved ) ),
 	];
-	$data = (array) filter( 'form_data', [ $data, $atts ], 'constructivemedia/hubspot/forms/atts' );
+	$data     = (array) filter( 'form_data', [ $own + $defaults, $atts ], 'constructivemedia/hubspot/forms/atts' );
 
-	// The old plugin skipped these values. Old atts callbacks may still return them, so while this
-	// layer is on they are skipped for every atts callback: clearing a field through atts needs the
-	// layer off.
-	$data = array_filter( $data, static fn( $value ) => ! in_array( $value, [ null, '', false, 0 ], true ) );
+	// The old plugin skipped these values. That still holds for the website defaults and for what
+	// the old form_data filter adds or changes. Values from the attributes and the atts filter keep
+	// this plugin's meaning: null clears, 0 and false are values.
+	$empty = static fn( $value ) => in_array( $value, [ null, '', false, 0 ], true );
+	$data  = array_filter(
+		$data,
+		static fn( $value, $key ) => ( array_key_exists( $key, $own ) && $own[ $key ] === $value ) || ! $empty( $value ),
+		ARRAY_FILTER_USE_BOTH
+	);
 
 	// For v4 forms, the old plugin prefixed field names with an object type, contacts by default,
 	// unless the field map named them. A name without a prefix matches the field on any object,
@@ -212,8 +234,8 @@ function create_options( array $atts ): mixed {
  * What to do after a submission is added after the form as an inert <template>, which
  * assets/deprecated.js acts on. Post authors can't write <template> elements themselves.
  *
- * Works from the shortcode's own attributes: running the atts filter again here would run every
- * callback twice.
+ * Uses the attributes as the atts filter left them, kept by atts(): running the filter again here
+ * would run every callback twice.
  *
  * @param string       $output The shortcode's output.
  * @param string       $tag    The shortcode's tag.
@@ -225,7 +247,8 @@ function after_render( string $output, string $tag, array|string $atts ): string
 		return $output;
 	}
 
-	$atts = is_array( $atts ) ? $atts : [];
+	$kept = filtered();
+	$atts = $kept ? $kept : ( is_array( $atts ) ? $atts : [] );
 	do_action_deprecated( OLD . 'after_render', [ $atts ], SINCE, 'do_shortcode_tag' );
 
 	$used = array_intersect_key( $atts, array_flip( ON_SUBMIT ) );
