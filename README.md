@@ -18,7 +18,7 @@ Requires PHP 8.1 and WordPress 6.7. It replaces the Constructive Media HubSpot F
 2. Tell the plugin your HubSpot account and its region, in the theme or a small plugin. Set both: while the [deprecated layer](#upgrading-from-constructive-media-hubspot-forms) is on, a region you leave out is `ap1`.
 
    ```php
-   add_filter( 'wp_hubspot_forms_settings', static fn( array $settings ): array => [ 'portal_id' => '12345678', 'region' => 'na1' ] + $settings );
+   add_filter( 'constructivemedia/hubspot/forms/settings', static fn( array $settings ): array => [ 'portal_id' => '12345678', 'region' => 'na1' ] + $settings );
    ```
 
 3. Place a form:
@@ -34,7 +34,7 @@ Requires PHP 8.1 and WordPress 6.7. It replaces the Constructive Media HubSpot F
    ```
 
    ```js
-   (window.WPHubSpotForms ||= []).push((forms) => forms.set({ campaign: 'spring-open-day' }));
+   (window.wp_hubspot_forms ||= []).push((forms) => forms.set({ campaign: 'spring-open-day' }));
    ```
 
 ### Installing with Composer
@@ -68,17 +68,17 @@ These attributes configure the form. Every other attribute is a value for the pr
 | Attribute | Default | Format and meaning |
 |---|---|---|
 | `form_id` | | Required. The form's GUID from HubSpot, in any case. |
-| `portal_id` | `wp_hubspot_forms_settings` | Required. Your HubSpot account ID (digits). |
+| `portal_id` | `constructivemedia/hubspot/forms/settings` | Required. Your HubSpot account ID (digits). |
 | `region` | `na1` (`ap1` while the deprecated layer is on) | Your account's data region, lower case: `na1`, `na2`, `eu1`, `ap1`, and so on. It is in the embed code HubSpot gives you. |
 | `mode` | `legacy` | `legacy`, `modern` or `modern-iframe`. See [Modes](#modes-legacy-and-v4). |
 | `instance` | automatic | A key for this copy of the form, for JavaScript: a lower-case letter, then up to 63 lower-case letters, digits, `-` or `_`. |
 | `business_unit_id` | | The HubSpot business unit (brand) the submission belongs to (digits). |
 | `class` | | Extra classes for the container, which always has `wp-hubspot-form`. |
 
-- **Empty attributes are ignored.** `listing_id=""` means "not set". To clear a field, use `null` from the `wp_hubspot_forms_atts` filter.
+- **Empty attributes are ignored.** `listing_id=""` means "not set". To clear a field, use `null` from the `constructivemedia/hubspot/forms/atts` filter.
 - **Settings are validated.** A missing or malformed setting renders nothing, and WordPress reports it when `WP_DEBUG` is on.
 - **Values survive the editor.** Post content stores `&` as `&amp;`; the plugin decodes it, so `listing_type="House &amp; Land"` arrives as `House & Land`.
-- **Legacy styling options** (`css`, `cssClass`, `submitButtonClass`, `errorClass`, `locale`, `translations`) can be passed as an `options` array through `wp_hubspot_forms_atts`. Callbacks can't: use the [events](#events) instead.
+- **Legacy styling options** (`css`, `cssClass`, `submitButtonClass`, `errorClass`, `locale`, `translations`) can be passed as an `options` array through `constructivemedia/hubspot/forms/atts`. Callbacks can't: use the [events](#events) instead.
 
 The shortcode outputs an empty container, and the plugin's script renders the form into it:
 
@@ -100,7 +100,7 @@ The plugin hides most of the differences. These remain:
 
 - **A new-editor form in legacy mode** renders as `modern-iframe` by itself, with a console warning. Set the mode to avoid the extra round trip.
 - **`modern` supports one HubSpot account per page.** That is HubSpot's limit. Use `modern-iframe` for forms from a second account.
-- **Submitted values:** `wphsf:submitted` fires for every form, but only legacy forms include the values in `detail.values`. HubSpot's v4 success event carries just the form and instance ids.
+- **Submitted values:** `constructivemedia/hubspot/forms/submitted` fires for every form, but only legacy forms include the values in `detail.values`. HubSpot's v4 success event carries just the form and instance ids.
 - **Phone numbers set from code** are best in international format, such as `+61412345678`. Legacy forms add the form's default country code to a local number. v4 forms read `0412 345 678` as `+0412345678`. What visitors type isn't affected.
 - **Styling options** (`options`) apply to legacy forms only. Style v4 forms in HubSpot.
 
@@ -112,9 +112,9 @@ Every value belongs to one of three scopes. When a field has values in several, 
 
 | Scope | Covers | From PHP | From JavaScript |
 |---|---|---|---|
-| global | every form on the page | `wp_hubspot_forms_global_values` | `WPHubSpotForms.set()` |
-| form | every copy of one form | `wp_hubspot_forms_form_values` | `WPHubSpotForms.form(formId).set()` |
-| instance | one copy | attributes, `wp_hubspot_forms_atts` | `WPHubSpotForms.instance(key).set()` |
+| global | every form on the page | `constructivemedia/hubspot/forms/global_values` | `wp_hubspot_forms.set()` |
+| form | every copy of one form | `constructivemedia/hubspot/forms/form_values` | `wp_hubspot_forms.form(formId).set()` |
+| instance | one copy | attributes, `constructivemedia/hubspot/forms/atts` | `wp_hubspot_forms.instance(key).set()` |
 
 ### What gets overwritten
 
@@ -127,7 +127,7 @@ The plugin only writes to fields the form has. For each one, it compares what th
 | HubSpot's value (a default, URL or returning-visitor prefill) | kept (`protected:hubspot`) | replaced |
 | what the visitor typed | kept (`protected:user`) | replaced |
 
-- **Attributes and `wp_hubspot_forms_atts` are forced.** They are this form's own instructions, so they replace HubSpot's defaults and prefill when the form renders.
+- **Attributes and `constructivemedia/hubspot/forms/atts` are forced.** They are this form's own instructions, so they replace HubSpot's defaults and prefill when the form renders.
 - **Everything else is unforced** unless you pass `{ force: true }` to `set()`.
 - **Force applies to the call that makes it.** A later unforced `set()`, even of a field with a forced attribute, never replaces what the visitor typed.
 - **Consent checkboxes and file fields are never touched.**
@@ -154,18 +154,18 @@ Use HubSpot's internal property names, not the labels. A bare name, such as `lis
 
 | Filter | Arguments | Use it for |
 |---|---|---|
-| `wp_hubspot_forms_settings` | `array $settings, string $form_id` | Defaults for the attributes that configure a form: `portal_id`, `region`, `mode`, `business_unit_id`. Shortcode attributes win. |
-| `wp_hubspot_forms_atts` | `array $atts, string $form_id` | This form's attributes, merged with the settings. Change settings, or add values that behave like attributes. |
-| `wp_hubspot_forms_global_values` | `array $values` | Values for every form. Runs once per request. |
-| `wp_hubspot_forms_form_values` | `array $values, string $form_id` | Values for every copy of one form. Runs once per form per request. |
-| `wp_hubspot_forms_legacy` | `bool $enabled` | Return `false` to turn off the [deprecated layer](#upgrading-from-constructive-media-hubspot-forms). Add it in a plugin or `functions.php`; it is read on `after_setup_theme`. |
+| `constructivemedia/hubspot/forms/settings` | `array $settings, string $form_id` | Defaults for the attributes that configure a form: `portal_id`, `region`, `mode`, `business_unit_id`. Shortcode attributes win. |
+| `constructivemedia/hubspot/forms/atts` | `array $atts, string $form_id` | This form's attributes, merged with the settings. Change settings, or add values that behave like attributes. |
+| `constructivemedia/hubspot/forms/global_values` | `array $values` | Values for every form. Runs once per request. |
+| `constructivemedia/hubspot/forms/form_values` | `array $values, string $form_id` | Values for every copy of one form. Runs once per form per request. |
+| `constructivemedia/hubspot/forms/legacy` | `bool $enabled` | Return `false` to turn off the [deprecated layer](#upgrading-from-constructive-media-hubspot-forms). Add it in a plugin or `functions.php`; it is read on `after_setup_theme`. |
 
 `$form_id` is always lower case.
 
 ```php
 // A different account, or the new editor, for particular forms.
 add_filter(
-	'wp_hubspot_forms_settings',
+	'constructivemedia/hubspot/forms/settings',
 	static function ( array $settings, string $form_id ): array {
 		if ( 'aaaaaaaa-1111-2222-3333-444455556666' === $form_id ) {
 			$settings['mode'] = 'modern-iframe';
@@ -178,7 +178,7 @@ add_filter(
 
 // Values that come from the page, like attributes: they replace HubSpot's defaults.
 add_filter(
-	'wp_hubspot_forms_atts',
+	'constructivemedia/hubspot/forms/atts',
 	static function ( array $atts ): array {
 		if ( is_singular( 'listing' ) ) {
 			$atts += [ 'listing_id' => (string) get_the_ID() ];
@@ -188,7 +188,7 @@ add_filter(
 );
 
 // Shared values: they fill empty fields only.
-add_filter( 'wp_hubspot_forms_global_values', static fn( array $values ): array => $values + [ 'agency_id' => 'example-agency' ] );
+add_filter( 'constructivemedia/hubspot/forms/global_values', static fn( array $values ): array => $values + [ 'agency_id' => 'example-agency' ] );
 ```
 
 `+=` keeps whatever the shortcode already set. Assign with `$atts['listing_id'] = ...` to override it.
@@ -199,26 +199,26 @@ add_filter( 'wp_hubspot_forms_global_values', static fn( array $values ): array 
 
 ## JavaScript API
 
-The script loads deferred in the footer and sets `window.WPHubSpotForms`. Code that may run first queues a callback, which runs at once if the script is already there:
+The script loads deferred in the footer and sets `window.wp_hubspot_forms`. Code that may run first queues a callback, which runs at once if the script is already there:
 
 ```js
-(window.WPHubSpotForms ||= []).push((forms) => {
-	// forms === window.WPHubSpotForms
+(window.wp_hubspot_forms ||= []).push((forms) => {
+	// forms === window.wp_hubspot_forms
 });
 ```
 
 ### Setting values
 
 ```js
-WPHubSpotForms.set({ campaign: 'spring' });                                                   // every form
-WPHubSpotForms.form('1a2b3c4d-1111-2222-3333-444455556666').set({ listing_type: 'package' }); // every copy of one form
-WPHubSpotForms.instance('enquiry').set({ listing_id: 'L-1001' }, { force: true });           // one copy
+wp_hubspot_forms.set({ campaign: 'spring' });                                                   // every form
+wp_hubspot_forms.form('1a2b3c4d-1111-2222-3333-444455556666').set({ listing_type: 'package' }); // every copy of one form
+wp_hubspot_forms.instance('enquiry').set({ listing_id: 'L-1001' }, { force: true });           // one copy
 ```
 
 Values are stored, then applied to every form in the scope that is ready. Forms that render later get them when they are ready, so it is safe to set values before the form exists. `set()` returns a promise of one result per form it covers:
 
 ```js
-const [result] = await WPHubSpotForms.instance('enquiry').set({ listing_id: 'L-1001', email: 'x@example.com', fax: '1' });
+const [result] = await wp_hubspot_forms.instance('enquiry').set({ listing_id: 'L-1001', email: 'x@example.com', fax: '1' });
 // {
 //   key: 'enquiry',
 //   applied: { '0-1/listing_id': 'L-1001' },
@@ -238,14 +238,14 @@ A form that isn't ready yet returns `{ key, applied: {}, skipped: {}, pending: [
 
 ### Reference
 
-| `WPHubSpotForms.` | |
+| `wp_hubspot_forms.` | |
 |---|---|
 | `set(values, { force })` | Global values. Returns a promise of results. |
 | `values()` | The stored global values, with their source and force. |
 | `form(formId).set(values, { force })`, `form(formId).values()` | The same for one form's scope. |
 | `instance(keyOrElement)` | One copy of a form. A key always returns an instance, even before it renders. An element returns the instance it belongs to, or `null`. |
 | `instances()` | The instances currently on the page. |
-| `push(callback)` | Calls `callback(WPHubSpotForms)`. |
+| `push(callback)` | Calls `callback(wp_hubspot_forms)`. |
 | `debug` | Set to `true` to log activity to the console. |
 
 | Instance | |
@@ -267,16 +267,16 @@ Events bubble from the container, so one listener on `document` hears every form
 
 | Event | When | `event.detail` also has |
 |---|---|---|
-| `wphsf:ready` | The form rendered and its values were applied. Fires again after `reload()`. | `applied`, `skipped` |
-| `wphsf:apply` | A `set()` changed at least one field. | `applied`, `skipped` |
-| `wphsf:submitted` | HubSpot accepted a submission. | `values`, for legacy forms |
+| `constructivemedia/hubspot/forms/ready` | The form rendered and its values were applied. Fires again after `reload()`. | `applied`, `skipped` |
+| `constructivemedia/hubspot/forms/apply` | A `set()` changed at least one field. | `applied`, `skipped` |
+| `constructivemedia/hubspot/forms/submitted` | HubSpot accepted a submission. | `values`, for legacy forms |
 
 ### Examples
 
 UTM parameters from the address, for every form:
 
 ```js
-(window.WPHubSpotForms ||= []).push((forms) => {
+(window.wp_hubspot_forms ||= []).push((forms) => {
 	const utm = [...new URLSearchParams(location.search)].filter(([name]) => name.startsWith('utm_'));
 	forms.set(Object.fromEntries(utm));
 });
@@ -292,7 +292,7 @@ One enquiry form in a modal, reused for each listing:
 document.addEventListener('click', (event) => {
 	const card = event.target.closest('[data-listing-id]');
 	if (!card) return;
-	const form = WPHubSpotForms.instance('enquiry');
+	const form = wp_hubspot_forms.instance('enquiry');
 	if (form.state === 'submitted') form.reload();
 	form.set({ listing_id: card.dataset.listingId, agent_email: card.dataset.agentEmail ?? null }, { force: true });
 	openModal();
@@ -302,17 +302,17 @@ document.addEventListener('click', (event) => {
 After a submission:
 
 ```js
-document.addEventListener('wphsf:submitted', ({ detail }) => {
+document.addEventListener('constructivemedia/hubspot/forms/submitted', ({ detail }) => {
 	window.dataLayer?.push({ event: 'hubspot_form_submitted', form_id: detail.instance.formId });
 });
 ```
 
 ## Debugging
 
-- **`WPHubSpotForms.debug = true`** logs every `ready`, `apply` and `submitted` event with its result, and containers the script ignored, in the console.
-- **`WPHubSpotForms.instances().map((form) => form.inspect())`** shows every form's state and, per field, `value` (what it holds), `hubspot` (what HubSpot put there), `written` (what the plugin wrote), `want` (the value the plugin resolved, with its scope, source and force) and `last` (the last outcome). Legacy values are live; v4 values are as of the last read, and `await form.get(name)` reads afresh.
+- **`wp_hubspot_forms.debug = true`** logs every `ready`, `apply` and `submitted` event with its result, and containers the script ignored, in the console.
+- **`wp_hubspot_forms.instances().map((form) => form.inspect())`** shows every form's state and, per field, `value` (what it holds), `hubspot` (what HubSpot put there), `written` (what the plugin wrote), `want` (the value the plugin resolved, with its scope, source and force) and `last` (the last outcome). Legacy values are live; v4 values are as of the last read, and `await form.get(name)` reads afresh.
 - **`WP_DEBUG`** reports invalid settings and dropped values from PHP.
-- **Console warnings** starting with `[WPHubSpotForms]` report forms that failed: a HubSpot script that didn't load, a render error, or a v4 form that stopped answering. They also flag a new-editor form placed in legacy mode.
+- **Console warnings** starting with `[wp_hubspot_forms]` report forms that failed: a HubSpot script that didn't load, a render error, or a v4 form that stopped answering. They also flag a new-editor form placed in legacy mode.
 
 A form that never becomes ready is usually a wrong `portal_id`, `region` or `mode`, or a script blocker. Compare the settings with the embed code HubSpot gives you for the form.
 
@@ -333,11 +333,11 @@ A form that never becomes ready is usually a wrong `portal_id`, `region` or `mod
 2. **Activate this plugin.** Existing shortcodes, hooks and scripts keep working through the deprecated layer (`src/deprecated.php` and `assets/deprecated.js`).
 3. **Turn on `WP_DEBUG`** and browse the site. Each old hook or attribute the site uses raises a deprecation notice, and each old browser API warns once in the console.
 4. **Migrate each one**, using the table below.
-5. **Set the portal and region** with `wp_hubspot_forms_settings`. The old plugin's built-in portal ID is not carried over: without a portal, forms don't render. Its default region, `ap1`, belongs to the deprecated layer.
+5. **Set the portal and region** with `constructivemedia/hubspot/forms/settings`. The old plugin's built-in portal ID is not carried over: without a portal, forms don't render. Its default region, `ap1`, belongs to the deprecated layer.
 6. **Turn the layer off**, once nothing raises a notice:
 
    ```php
-   add_filter( 'wp_hubspot_forms_legacy', '__return_false' );
+   add_filter( 'constructivemedia/hubspot/forms/legacy', '__return_false' );
    ```
 
    That also stops loading HubSpot's legacy library and the old helper on every page. The plugin then loads what a page needs, when it has a form.
@@ -346,25 +346,25 @@ The deprecated layer will be removed in 2.0.
 
 ### Replacements
 
-All old hooks start with `constructivemedia/hubspot/forms/`.
+The old hooks and the new ones share the `constructivemedia/hubspot/forms/` prefix. In the table, "old" names are the rest of the old hook name.
 
 | Old | Use instead |
 |---|---|
-| `portal_id`, `region` filters, and the built-in portal and region | `wp_hubspot_forms_settings` |
-| `atts` filter | `wp_hubspot_forms_atts` |
-| `form_data` filter | `wp_hubspot_forms_atts` for one form's values; `wp_hubspot_forms_global_values` or `wp_hubspot_forms_form_values` for shared ones |
-| The automatic `website`, `website_url`, `form_id` and `portal_id` values | Add the ones your forms use with `wp_hubspot_forms_atts`; see below |
+| `portal_id`, `region` filters, and the built-in portal and region | `constructivemedia/hubspot/forms/settings` |
+| `atts` filter | The same hook, `constructivemedia/hubspot/forms/atts`, with the same purpose. Because the name is unchanged, it raises no notice; see [what changes](#what-changes-even-with-the-deprecated-layer-on). |
+| `form_data` filter | `constructivemedia/hubspot/forms/atts` for one form's values; `constructivemedia/hubspot/forms/global_values` or `constructivemedia/hubspot/forms/form_values` for shared ones |
+| The automatic `website`, `website_url`, `form_id` and `portal_id` values | Add the ones your forms use with `constructivemedia/hubspot/forms/atts`; see below |
 | `reserved_keys` filter | Nothing: the reserved attributes are fixed |
 | `name` attribute, the `hs-form-wrapper hs-form-{name} hs-form-mode-{mode}` classes, `wrapper_class` filter | The `class` attribute. Every container has `wp-hubspot-form`. |
-| `form_create_options` filter | An `options` array through `wp_hubspot_forms_atts` |
+| `form_create_options` filter | An `options` array through `constructivemedia/hubspot/forms/atts` |
 | `v4_field_prefix`, `v4_field_map` filters | Qualified property names, such as `0-2/name` |
-| `before_render`, `after_render` actions | `wp_hubspot_forms_atts`, and WordPress's `do_shortcode_tag` |
-| `script_url`, `modern_script_url` filters, the site-wide `hsforms-loader` script | Nothing: the plugin loads HubSpot's libraries. Code that waited for `hsforms-loader` should listen for `wphsf:ready`. |
-| `on_submit`, `on_submit_url`, `on_submit_html`, `on_submit_delay` and `gated_url` attributes, `on_submit` filter | The form's redirect or thank-you message in HubSpot, or the `wphsf:submitted` event |
-| `window.hubspotData` | `WPHubSpotForms.set(values, { force: true })` |
-| `window.CMHubspotForms` | `window.WPHubSpotForms`, as below |
+| `before_render`, `after_render` actions | `constructivemedia/hubspot/forms/atts`, and WordPress's `do_shortcode_tag` |
+| `script_url`, `modern_script_url` filters, the site-wide `hsforms-loader` script | Nothing: the plugin loads HubSpot's libraries. Code that waited for `hsforms-loader` should listen for `constructivemedia/hubspot/forms/ready`. |
+| `on_submit`, `on_submit_url`, `on_submit_html`, `on_submit_delay` and `gated_url` attributes, `on_submit` filter | The form's redirect or thank-you message in HubSpot, or the `constructivemedia/hubspot/forms/submitted` event |
+| `window.hubspotData` | `wp_hubspot_forms.set(values, { force: true })` |
+| `window.CMHubspotForms` | `window.wp_hubspot_forms`, as below |
 
-| `CMHubspotForms.` | `WPHubSpotForms.` |
+| `CMHubspotForms.` | `wp_hubspot_forms.` |
 |---|---|
 | `setFieldValue(target, name, value)`, `setFieldValues(target, fields)` | `instance(element).set(fields, { force: true })`, or `set(fields, { force: true })` for every form |
 | `getFieldValue(target, name)`, `getFieldValues(target, names)` | `await instance(element).get(name)` |
@@ -372,13 +372,13 @@ All old hooks start with `constructivemedia/hubspot/forms/`.
 | `getContainers()` | `instances().map((form) => form.element)` |
 | `reset(target, names)` | `instance(element).set({ name: null }, { force: true })`, or `reload()` |
 | `submit(target)` | Click the form's submit button. |
-| `onReady(target, callback)` | `document.addEventListener('wphsf:ready', ...)` |
+| `onReady(target, callback)` | `document.addEventListener('constructivemedia/hubspot/forms/ready', ...)` |
 
 The automatic values, restored without the deprecated layer. Like the old plugin, this fills contact fields only and skips an empty website:
 
 ```php
 add_filter(
-	'wp_hubspot_forms_atts',
+	'constructivemedia/hubspot/forms/atts',
 	static function ( array $atts, string $form_id ): array {
 		$website = get_website_entry_url();
 		if ( $website ) {
@@ -395,7 +395,7 @@ The older `hubspot.php` also filled some properties from the site's own logic, s
 
 ```php
 add_filter(
-	'wp_hubspot_forms_atts',
+	'constructivemedia/hubspot/forms/atts',
 	static function ( array $atts ): array {
 		$region = function_exists( 'my_site_region' ) ? my_site_region() : null;
 		if ( $region ) {
@@ -414,6 +414,7 @@ add_filter(
 - The plugin's script renders each form into its container. The shortcode no longer prints inline scripts.
 - Legacy forms get a HubSpot `formInstanceId`, which HubSpot appends to the form's and fields' element ids, as in `hsForm_{form id}_enquiry-1`. The suffix changes with every render, so CSS and scripts should select by class or attribute instead of those ids.
 - `CMHubspotForms` setters apply asynchronously, once the form is ready. Its getters return v4 values as of the last read.
+- The `atts` filter receives the attributes merged with the settings, and its result goes through the old pipeline: mode and region are normalised, the old reserved attributes are removed, and `null`, `""`, `false` and `0` values are dropped rather than sent, as the old plugin did. Clearing a field with `null` from `atts` therefore works once the layer is off.
 
 ## Development
 

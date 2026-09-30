@@ -2,9 +2,9 @@
  * Compatibility with the Constructive Media HubSpot Forms plugin's browser API.
  *
  * Provides window.CMHubspotForms and window.hubspotData, and acts on the [hubspot on_submit] and
- * gated_url templates, all on top of window.WPHubSpotForms. Loaded in the head of every page, as
- * the old helper was. Each old API warns once in the console. Deprecated since 1.0.0, and removed
- * in 2.0.
+ * gated_url templates, all on top of wp_hubspot_forms. Loaded in the head of every
+ * page, as the old helper was. Each old API warns once in the console. Deprecated since 1.0.0, and
+ * removed in 2.0.
  */
 (() => {
 	'use strict';
@@ -16,14 +16,14 @@
 	const deprecated = (name, instead) => {
 		if (warned.has(name)) return;
 		warned.add(name);
-		console.warn(`[WPHubSpotForms] ${name} is deprecated; use ${instead}.`);
+		console.warn(`[wp_hubspot_forms] ${name} is deprecated; use ${instead}.`);
 	};
 
 	/** Runs a callback with the API, now or once it has loaded. */
-	const queue = (callback) => (window.WPHubSpotForms ||= []).push(callback);
+	const queue = (callback) => (window.wp_hubspot_forms ||= []).push(callback);
 
 	/** The API, or null while it hasn't loaded. */
-	const live = () => (Array.isArray(window.WPHubSpotForms) ? null : window.WPHubSpotForms);
+	const live = () => (Array.isArray(window.wp_hubspot_forms) ? null : window.wp_hubspot_forms ?? null);
 
 	/**
 	 * The containers an old-style target refers to. No target means every form on the page. A
@@ -104,27 +104,27 @@
 					if (form.state === 'ready') fire(form.element);
 				}
 			});
-			document.addEventListener('wphsf:ready', (event) => fire(event.target));
+			document.addEventListener('constructivemedia/hubspot/forms/ready', (event) => fire(event.target));
 		},
 	};
 
 	window.CMHubspotForms = Object.fromEntries(Object.entries(methods).map(([name, method]) => [name, (...args) => {
-		deprecated(`CMHubspotForms.${name}()`, 'window.WPHubSpotForms');
+		deprecated(`CMHubspotForms.${name}()`, 'window.wp_hubspot_forms');
 		return method(...args);
 	}]));
 
 	// window.hubspotData filled every form, over the shortcode's values. Empty entries were ignored.
-	document.addEventListener('wphsf:ready', (event) => {
+	document.addEventListener('constructivemedia/hubspot/forms/ready', (event) => {
 		const data = Object.entries(window.hubspotData ?? {}).filter(([, value]) => value != null && value !== '');
 		if (!data.length) return;
 
-		deprecated('window.hubspotData', 'WPHubSpotForms.set(values, { force: true })');
+		deprecated('window.hubspotData', 'wp_hubspot_forms.set(values, { force: true })');
 		event.detail.instance.set(Object.fromEntries(data), { force: true });
 	});
 
 	// [hubspot on_submit="redirect|html"] and gated_url add a <template> after the form, saying what
 	// to show or where to go after a submission.
-	document.addEventListener('wphsf:submitted', ({ target }) => {
+	document.addEventListener('constructivemedia/hubspot/forms/submitted', ({ target }) => {
 		const then = target.nextElementSibling;
 		if (!then?.matches('template.wphsf-on-submit')) return;
 

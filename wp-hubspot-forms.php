@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       WP HubSpot Forms
  * Description:       Embed HubSpot forms with [hubspot] and populate their fields by property name from PHP and JavaScript.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.7
  * Requires PHP:      8.1
  * Update URI:        false
@@ -11,19 +11,19 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-hubspot-forms
  *
- * @package WpHubspotForms
+ * @package ConstructiveMedia\HubSpot\Forms
  */
 
 declare( strict_types=1 );
 
-namespace WpHubspotForms;
+namespace ConstructiveMedia\HubSpot\Forms;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
  * The plugin version. It also versions the plugin's scripts, so browsers fetch them afresh after an update.
  */
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 require_once __DIR__ . '/src/Shortcode.php';
 require_once __DIR__ . '/src/deprecated.php';
@@ -55,12 +55,12 @@ add_action(
  * defaults and browser API. Deprecated, and removed in 2.0. Sites that don't need it turn it off
  * from a plugin or the theme's functions.php:
  *
- *     add_filter( 'wp_hubspot_forms_legacy', '__return_false' );
+ *     add_filter( 'constructivemedia/hubspot/forms/legacy', '__return_false' );
  */
 add_action(
 	'after_setup_theme',
 	static function (): void {
-		if ( apply_filters( 'wp_hubspot_forms_legacy', true ) ) {
+		if ( apply_filters( 'constructivemedia/hubspot/forms/legacy', true ) ) {
 			Deprecated\register( __FILE__ );
 		}
 	}

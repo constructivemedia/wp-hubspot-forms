@@ -2,15 +2,15 @@
 /**
  * The [hubspot] shortcode and its value rules.
  *
- * @package WpHubspotForms
+ * @package ConstructiveMedia\HubSpot\Forms
  */
 
 declare( strict_types=1 );
 
-namespace WpHubspotForms\Tests;
+namespace ConstructiveMedia\HubSpot\Forms\Tests;
 
 use PHPUnit\Framework\TestCase;
-use WpHubspotForms\Shortcode;
+use ConstructiveMedia\HubSpot\Forms\Shortcode;
 
 final class ShortcodeTest extends TestCase {
 
@@ -18,7 +18,7 @@ final class ShortcodeTest extends TestCase {
 
 	protected function setUp(): void {
 		$GLOBALS['test_filters'] = [];
-		add_filter( 'wp_hubspot_forms_settings', static fn( array $settings ) => [ 'portal_id' => '123' ] + $settings );
+		add_filter( 'constructivemedia/hubspot/forms/settings', static fn( array $settings ) => [ 'portal_id' => '123' ] + $settings );
 	}
 
 	/**
@@ -39,9 +39,9 @@ final class ShortcodeTest extends TestCase {
 	}
 
 	public function test_hooks_supply_settings_and_each_scope(): void {
-		add_filter( 'wp_hubspot_forms_atts', static fn( array $atts ) => [ 'mode' => 'modern', 'listing_type' => 'package' ] + $atts );
-		add_filter( 'wp_hubspot_forms_global_values', static fn( array $values ) => $values + [ 'website_url' => 'https://example.com' ] );
-		add_filter( 'wp_hubspot_forms_form_values', static fn( array $values, string $form ) => self::FORM === $form ? $values + [ 'build_region' => 'North' ] : $values );
+		add_filter( 'constructivemedia/hubspot/forms/atts', static fn( array $atts ) => [ 'mode' => 'modern', 'listing_type' => 'package' ] + $atts );
+		add_filter( 'constructivemedia/hubspot/forms/global_values', static fn( array $values ) => $values + [ 'website_url' => 'https://example.com' ] );
+		add_filter( 'constructivemedia/hubspot/forms/form_values', static fn( array $values, string $form ) => self::FORM === $form ? $values + [ 'build_region' => 'North' ] : $values );
 
 		$data = self::render( [ 'form_id' => self::FORM ] )[0];
 
@@ -52,7 +52,7 @@ final class ShortcodeTest extends TestCase {
 	}
 
 	public function test_atts_filter_null_clears(): void {
-		add_filter( 'wp_hubspot_forms_atts', static fn( array $atts ) => [ 'build_region' => null ] + $atts );
+		add_filter( 'constructivemedia/hubspot/forms/atts', static fn( array $atts ) => [ 'build_region' => null ] + $atts );
 
 		$this->assertSame( [ 'build_region' => null ], self::render( [ 'form_id' => self::FORM ] )[0]['scopes']['instance'] );
 	}
@@ -77,7 +77,7 @@ final class ShortcodeTest extends TestCase {
 
 	public function test_values_survive_html_and_entities_exactly(): void {
 		$tricky = '</script><b onmouseover="x">&amp; \'q\'';
-		add_filter( 'wp_hubspot_forms_global_values', static fn() => [ 'note' => $tricky ] );
+		add_filter( 'constructivemedia/hubspot/forms/global_values', static fn() => [ 'note' => $tricky ] );
 
 		[ $data, $html ] = self::render( [ 'form_id' => self::FORM, 'listing_type' => 'House &amp; Land' ] );
 

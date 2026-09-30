@@ -6,16 +6,20 @@
  * sites keep working while they migrate. Each old hook raises a deprecation notice (shown with
  * WP_DEBUG) only when a site uses it. Deprecated since 1.0.0, and removed in 2.0.
  *
- * @package WpHubspotForms
+ * The old atts filter has the same name as this plugin's, so old and new callbacks share it and
+ * can't be told apart. This layer therefore runs last on that filter and applies the old plugin's
+ * conversions to the result, and no notice is raised for it.
+ *
+ * @package ConstructiveMedia\HubSpot\Forms
  */
 
 declare( strict_types=1 );
 
-namespace WpHubspotForms\Deprecated;
+namespace ConstructiveMedia\HubSpot\Forms\Deprecated;
 
-use WpHubspotForms\Shortcode;
+use ConstructiveMedia\HubSpot\Forms\Shortcode;
 
-use const WpHubspotForms\VERSION;
+use const ConstructiveMedia\HubSpot\Forms\VERSION;
 
 /**
  * The prefix of the old plugin's hooks.
@@ -43,8 +47,8 @@ const QUALIFIED_NAMES = 'qualified names such as 0-2/name';
  * @param string $plugin The main plugin file.
  */
 function register( string $plugin ): void {
-	add_filter( 'wp_hubspot_forms_settings', __NAMESPACE__ . '\\settings', 1 );
-	add_filter( 'wp_hubspot_forms_atts', __NAMESPACE__ . '\\atts', 1 );
+	add_filter( 'constructivemedia/hubspot/forms/settings', __NAMESPACE__ . '\\settings', 1 );
+	add_filter( 'constructivemedia/hubspot/forms/atts', __NAMESPACE__ . '\\atts', PHP_INT_MAX );
 	add_filter( 'do_shortcode_tag', __NAMESPACE__ . '\\after_render', 10, 3 );
 	add_action( 'init', static fn() => scripts( $plugin ) );
 	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue' );
@@ -68,34 +72,32 @@ function filter( string $name, array $args, string $replacement ): mixed {
  * @return string The region.
  */
 function region(): string {
-	return (string) filter( 'region', [ 'ap1' ], 'wp_hubspot_forms_settings' );
+	return (string) filter( 'region', [ 'ap1' ], 'constructivemedia/hubspot/forms/settings' );
 }
 
 /**
  * Applies the old default region (ap1) and the old portal_id and region filters. The old plugin's
- * built-in portal ID is not carried over: sites set their portal with wp_hubspot_forms_settings.
+ * built-in portal ID is not carried over: sites set their portal with constructivemedia/hubspot/forms/settings.
  *
  * @param array $settings The default settings.
  * @return array The settings.
  */
 function settings( array $settings ): array {
-	$settings['portal_id'] = filter( 'portal_id', [ $settings['portal_id'] ?? '' ], 'wp_hubspot_forms_settings' );
+	$settings['portal_id'] = filter( 'portal_id', [ $settings['portal_id'] ?? '' ], 'constructivemedia/hubspot/forms/settings' );
 	$settings['region']    = region();
 
 	return $settings;
 }
 
 /**
- * Runs a form's attributes through the old attribute pipeline: the atts, reserved_keys, form_data,
- * v4_field_prefix, v4_field_map, wrapper_class and form_create_options filters, and the
- * before_render action.
+ * Runs a form's attributes, after every atts callback, through the old attribute pipeline: the
+ * reserved_keys, form_data, v4_field_prefix, v4_field_map, wrapper_class and form_create_options
+ * filters, and the before_render action.
  *
- * @param array $atts Attributes merged with the settings.
+ * @param array $atts Attributes merged with the settings, as filtered.
  * @return array The settings, and the values the old pipeline produced.
  */
 function atts( array $atts ): array {
-	$atts = (array) filter( 'atts', [ $atts ], 'wp_hubspot_forms_atts' );
-
 	// The old plugin accepted any case and spacing, and rendered an unknown mode as legacy.
 	$mode           = strtolower( trim( (string) ( $atts['mode'] ?? '' ) ) );
 	$atts['mode']   = in_array( $mode, [ 'modern', 'modern-iframe' ], true ) ? $mode : 'legacy';
@@ -105,7 +107,7 @@ function atts( array $atts ): array {
 	$atts['class']   = wrapper_class( $atts );
 	$atts['options'] = create_options( $atts );
 
-	do_action_deprecated( OLD . 'before_render', [ $atts ], SINCE, 'wp_hubspot_forms_atts' );
+	do_action_deprecated( OLD . 'before_render', [ $atts ], SINCE, 'constructivemedia/hubspot/forms/atts' );
 
 	return array_intersect_key( $atts, array_flip( Shortcode::RESERVED ) ) + $values;
 }
@@ -126,7 +128,7 @@ function form_data( array $atts ): array {
 	$reserved     = [
 		...Shortcode::RESERVED,
 		...ON_SUBMIT,
-		...(array) filter( 'reserved_keys', [ $old_reserved ], 'wp_hubspot_forms_atts' ),
+		...(array) filter( 'reserved_keys', [ $old_reserved ], 'constructivemedia/hubspot/forms/atts' ),
 	];
 
 	// get_website_entry_url() is defined by the site, when at all.
@@ -137,9 +139,11 @@ function form_data( array $atts ): array {
 		'website_url' => $website,
 		...array_diff_key( $atts, array_flip( $reserved ) ),
 	];
-	$data = (array) filter( 'form_data', [ $data, $atts ], 'wp_hubspot_forms_atts' );
+	$data = (array) filter( 'form_data', [ $data, $atts ], 'constructivemedia/hubspot/forms/atts' );
 
-	// The old plugin skipped these values.
+	// The old plugin skipped these values. Old atts callbacks may still return them, so while this
+	// layer is on they are skipped for every atts callback: clearing a field through atts needs the
+	// layer off.
 	$data = array_filter( $data, static fn( $value ) => ! in_array( $value, [ null, '', false, 0 ], true ) );
 
 	// For v4 forms, the old plugin prefixed field names with an object type, contacts by default,
@@ -199,7 +203,7 @@ function create_options( array $atts ): mixed {
 		'region'   => $atts['region'],
 	];
 
-	return filter( 'form_create_options', [ $options, $atts ], 'the options attribute via wp_hubspot_forms_atts' );
+	return filter( 'form_create_options', [ $options, $atts ], 'the options attribute via constructivemedia/hubspot/forms/atts' );
 }
 
 /**
@@ -207,6 +211,9 @@ function create_options( array $atts ): mixed {
  *
  * What to do after a submission is added after the form as an inert <template>, which
  * assets/deprecated.js acts on. Post authors can't write <template> elements themselves.
+ *
+ * Works from the shortcode's own attributes: running the atts filter again here would run every
+ * callback twice.
  *
  * @param string       $output The shortcode's output.
  * @param string       $tag    The shortcode's tag.
@@ -218,8 +225,7 @@ function after_render( string $output, string $tag, array|string $atts ): string
 		return $output;
 	}
 
-	// The attributes as the old plugin's hooks saw them.
-	$atts = (array) filter( 'atts', [ is_array( $atts ) ? $atts : [] ], 'wp_hubspot_forms_atts' );
+	$atts = is_array( $atts ) ? $atts : [];
 	do_action_deprecated( OLD . 'after_render', [ $atts ], SINCE, 'do_shortcode_tag' );
 
 	$used = array_intersect_key( $atts, array_flip( ON_SUBMIT ) );
@@ -227,7 +233,7 @@ function after_render( string $output, string $tag, array|string $atts ): string
 		return $output;
 	}
 	if ( $used ) {
-		$message = implode( ', ', array_keys( $used ) ) . ': use the form\'s redirect or thank-you message in HubSpot, or the wphsf:submitted event.';
+		$message = implode( ', ', array_keys( $used ) ) . ': use the form\'s redirect or thank-you message in HubSpot, or the constructivemedia/hubspot/forms/submitted event.';
 		_deprecated_argument( '[hubspot]', esc_html( SINCE ), esc_html( $message ) );
 	}
 
@@ -248,7 +254,7 @@ function after_render( string $output, string $tag, array|string $atts ): string
 		'html'   => $atts['on_submit_html'] ?? '',
 		'delay'  => (int) ( $atts['on_submit_delay'] ?? 1 ),
 	];
-	$then  = (array) filter( 'on_submit', [ $then, $atts ], 'the wphsf:submitted event' );
+	$then  = (array) filter( 'on_submit', [ $then, $atts ], 'the constructivemedia/hubspot/forms/submitted event' );
 	$delay = max( 0, (int) ( $then['delay'] ?? 1 ) );
 
 	$template = match ( $then['action'] ?? '' ) {

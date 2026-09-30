@@ -2,7 +2,7 @@
 /**
  * PHPUnit bootstrap: the few WordPress functions the plugin calls, stubbed.
  *
- * @package WpHubspotForms
+ * @package ConstructiveMedia\HubSpot\Forms
  */
 
 declare( strict_types=1 );
@@ -11,12 +11,14 @@ define( 'ABSPATH', __DIR__ );
 
 $GLOBALS['test_filters'] = [];
 
-function add_filter( string $hook, callable $callback ): void {
-	$GLOBALS['test_filters'][ $hook ][] = $callback;
+function add_filter( string $hook, callable $callback, int $priority = 10 ): void {
+	$GLOBALS['test_filters'][ $hook ][] = [ $priority, $callback ];
 }
 
 function apply_filters( string $hook, mixed $value, mixed ...$args ): mixed {
-	foreach ( $GLOBALS['test_filters'][ $hook ] ?? [] as $callback ) {
+	$callbacks = $GLOBALS['test_filters'][ $hook ] ?? [];
+	usort( $callbacks, static fn( array $a, array $b ) => $a[0] <=> $b[0] ); // Stable, as in WordPress.
+	foreach ( $callbacks as [ , $callback ] ) {
 		$value = $callback( $value, ...$args );
 	}
 	return $value;

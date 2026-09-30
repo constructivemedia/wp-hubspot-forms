@@ -4,7 +4,7 @@ Tags: hubspot, forms, shortcode, marketing
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ The full guide is README.md in the plugin folder.
 
 1. Deactivate the Constructive Media HubSpot Forms plugin, and remove any theme include of its older hubspot.php file. They register [hubspot] too.
 2. Upload the release zip in Plugins, Add New Plugin, Upload Plugin, and activate it.
-3. Set your portal and region with the wp_hubspot_forms_settings filter.
+3. Set your portal and region with the constructivemedia/hubspot/forms/settings filter.
 4. Add [hubspot form_id="..."] to a page.
 5. In HubSpot, add every domain that shows forms as a site domain. HubSpot files submissions from other domains as spam.
 
@@ -38,7 +38,7 @@ Forms built in HubSpot's legacy editor use the default, mode="legacy". Forms bui
 
 = A value doesn't appear in the form. Why? =
 
-In the browser console, run WPHubSpotForms.debug = true, or WPHubSpotForms.instances()[0].inspect(). Each field shows its value, what the plugin wants to write, and why it did or didn't. A field that already holds a HubSpot default or the visitor's input is only replaced by a forced value.
+In the browser console, run wp_hubspot_forms.debug = true, or wp_hubspot_forms.instances()[0].inspect(). Each field shows its value, what the plugin wants to write, and why it did or didn't. A field that already holds a HubSpot default or the visitor's input is only replaced by a forced value.
 
 = Does it work with full-page caching? =
 
@@ -46,10 +46,19 @@ Yes. Values from PHP are part of the cached page, so set visitor-specific values
 
 == Changelog ==
 
+= 1.0.1 =
+* Hooks, events, the JavaScript global and the PHP namespace move under the constructivemedia naming convention. See CHANGELOG.md for the renames.
+* The deprecated layer no longer supplies the old plugin's portal ID: set portal_id with constructivemedia/hubspot/forms/settings.
+* Requires PHP 8.1. Installable with Composer.
+* Fixes for rejected options, the order of set() calls, removed forms and duplicate instance keys.
+
 = 1.0.0 =
 * First release. Replaces Constructive Media HubSpot Forms 5.0.0.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Renames the plugin's hooks, events and JavaScript global; update your filters and scripts. See CHANGELOG.md.
 
 = 1.0.0 =
 Replaces Constructive Media HubSpot Forms. Deactivate the old plugin before activating this one.

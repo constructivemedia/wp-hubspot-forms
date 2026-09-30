@@ -36,7 +36,7 @@ async function scenario() {
 		for (let spent = 0; spent < ms && !fn(); spent += 250) await wait(250);
 		return fn();
 	};
-	const H = window.WPHubSpotForms;
+	const H = window.wp_hubspot_forms;
 	const checks = [];
 	const check = (name, pass, detail) => checks.push({ name, pass: Boolean(pass), detail });
 	const field = (key, name) => H.instance(key).inspect().fields[`0-1/${name}`]?.value;

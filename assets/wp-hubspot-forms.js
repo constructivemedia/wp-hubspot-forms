@@ -4,22 +4,22 @@
  * Renders the forms placed with the [hubspot] shortcode, and fills their fields by HubSpot
  * property name. Values are stored in three scopes, and the most specific one wins:
  *
- *   WPHubSpotForms.set({ utm_source: 'google' });                  // every form
- *   WPHubSpotForms.form(formId).set({ listing_type: 'package' });  // every copy of one form
- *   WPHubSpotForms.instance('enquiry').set({ listing_id: '12' });  // one copy, by key or element
+ *   wp_hubspot_forms.set({ utm_source: 'google' });                  // every form
+ *   wp_hubspot_forms.form(formId).set({ listing_type: 'package' });  // every copy of one form
+ *   wp_hubspot_forms.instance('enquiry').set({ listing_id: '12' });  // one copy, by key or element
  *
  * Values fill empty fields and replace values this script wrote. { force: true } also replaces
  * HubSpot's defaults and prefill, and what the visitor typed.
  *
  * Code that may run before this script loads can queue a callback:
  *
- *   (window.WPHubSpotForms ||= []).push((forms) => forms.set({ campaign: 'spring' }));
+ *   (window.wp_hubspot_forms ||= []).push((forms) => forms.set({ campaign: 'spring' }));
  */
 (() => {
 	'use strict';
 
 	// Callbacks queued before this script ran. Anything other than an array means it already ran.
-	const queued = window.WPHubSpotForms;
+	const queued = window.wp_hubspot_forms;
 	if (queued && !Array.isArray(queued)) return;
 
 	/** The containers the shortcode renders. */
@@ -44,8 +44,8 @@
 	/** Values that tick a single checkbox. Any other value unticks it. */
 	const TRUE = new Set([true, 'true', 1, '1']);
 
-	/** Logs to the console while WPHubSpotForms.debug is true. */
-	const log = (...args) => api.debug && console.info('[WPHubSpotForms]', ...args);
+	/** Logs to the console while wp_hubspot_forms.debug is true. */
+	const log = (...args) => api.debug && console.info('[wp_hubspot_forms]', ...args);
 
 	/* Values ------------------------------------------------------------------------------------ */
 
@@ -645,19 +645,19 @@
 		/** Handles a failed render. A new-editor form placed in legacy mode is rendered again as v4. */
 		#fail(error) {
 			if (error === 'NON_EMBEDDABLE_EDITOR2_FORM') {
-				console.warn('[WPHubSpotForms]', `Form ${this.formId} was built in HubSpot's new editor; set mode="modern-iframe" or "modern" to skip this extra render.`);
+				console.warn('[wp_hubspot_forms]', `Form ${this.formId} was built in HubSpot's new editor; set mode="modern-iframe" or "modern" to skip this extra render.`);
 				this.mode = 'modern-iframe';
 				return this.reload();
 			}
 
 			this.state = 'error';
-			console.warn('[WPHubSpotForms]', this.key, error);
+			console.warn('[wp_hubspot_forms]', this.key, error);
 		}
 
-		/** Dispatches a wphsf:* event from the container. */
+		/** Dispatches a constructivemedia/hubspot/forms/* event from the container. */
 		#emit(type, detail) {
 			log(type, this.key, detail);
-			this.element?.dispatchEvent(new CustomEvent(`wphsf:${type}`, { bubbles: true, detail: { instance: this, ...detail } }));
+			this.element?.dispatchEvent(new CustomEvent(`constructivemedia/hubspot/forms/${type}`, { bubbles: true, detail: { instance: this, ...detail } }));
 		}
 	}
 
@@ -775,7 +775,7 @@
 	addEventListener('hs-form-event:on-ready', (event) => rendered(event)?.ready(window.HubSpotFormsV4.getFormFromEvent(event)));
 	addEventListener('hs-form-event:on-submission:success', (event) => rendered(event)?.submitted());
 
-	window.WPHubSpotForms = api;
+	window.wp_hubspot_forms = api;
 	(queued ?? []).forEach(api.push);
 
 	/** The containers in a node: the node itself, or those inside it. */

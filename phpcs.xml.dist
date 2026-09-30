@@ -20,10 +20,13 @@
 		<exclude name="WordPress.Files.FileName"/>
 	</rule>
 
-	<!-- The deprecated layer keeps the old plugin's hook names (constructivemedia/hubspot/forms/*). -->
+	<!-- Hooks are namespaced with slashes: constructivemedia/hubspot/forms/<hook>. -->
 	<rule ref="WordPress.NamingConventions.ValidHookName">
-		<exclude-pattern>src/deprecated.php</exclude-pattern>
+		<properties>
+			<property name="additionalWordDelimiters" value="/"/>
+		</properties>
 	</rule>
+	<!-- The deprecated layer builds the old plugin's hook names from a prefix constant. -->
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound">
 		<exclude-pattern>src/deprecated.php</exclude-pattern>
 	</rule>
@@ -41,9 +44,9 @@
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
 			<property name="prefixes" type="array">
-				<element value="wp_hubspot_forms"/>
-				<element value="WP_HUBSPOT_FORMS"/>
-				<element value="WpHubspotForms"/>
+				<element value="constructivemedia"/>
+				<element value="CONSTRUCTIVEMEDIA"/>
+				<element value="ConstructiveMedia"/>
 			</property>
 		</properties>
 	</rule>

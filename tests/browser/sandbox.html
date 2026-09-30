@@ -99,12 +99,12 @@
 	const print = (label, value) => {
 		log.textContent = `${new Date().toLocaleTimeString()}  ${label}\n${value === undefined ? '' : JSON.stringify(value, null, 2)}\n\n${log.textContent}`;
 	};
-	(window.WPHubSpotForms ||= []).push((api) => { api.debug = true; });
+	(window.wp_hubspot_forms ||= []).push((api) => { api.debug = true; });
 
 	for (const type of ['ready', 'apply', 'submitted']) {
-		document.addEventListener(`wphsf:${type}`, (event) => {
+		document.addEventListener(`constructivemedia/hubspot/forms/${type}`, (event) => {
 			const { instance, applied, skipped } = event.detail;
-			print(`event wphsf:${type} → ${instance.key}`, type === 'submitted' ? undefined : { applied, skipped });
+			print(`event constructivemedia/hubspot/forms/${type} → ${instance.key}`, type === 'submitted' ? undefined : { applied, skipped });
 		});
 	}
 
@@ -126,7 +126,7 @@
 		v4Force: (api) => api.instance('v4-iframe').set({ firstname: 'Ada' }, { force: true }),
 		v4Html: (api) => api.instance('v4-html').set({ firstname: 'Linus', company: 'Kernel Co' }),
 		inspect: (api) => { const all = api.instances().map((form) => form.inspect()); console.table(all); return all; },
-		reload: (api) => { api.instance('header').reload(); return 'reloading; watch for wphsf:ready'; },
+		reload: (api) => { api.instance('header').reload(); return 'reloading; watch for constructivemedia/hubspot/forms/ready'; },
 		deprecated: () => { window.CMHubspotForms.setFieldValues('.hs-form-footer', { gatrackid: 'OLD-API' }); return 'sent (see the console warning); inspect to check'; },
 		clearLog: () => { log.textContent = ''; },
 	};
@@ -134,7 +134,7 @@
 	document.getElementById('sandbox').addEventListener('click', async (event) => {
 		const button = event.target.closest('button[data-run]');
 		if (!button) return;
-		const api = window.WPHubSpotForms;
+		const api = window.wp_hubspot_forms;
 		try {
 			const result = await actions[button.dataset.run](api);
 			if (button.dataset.run !== 'clearLog') print(button.textContent, result);
@@ -149,7 +149,7 @@
 	document.getElementById('sandbox').addEventListener('click', async (event) => {
 		const button = event.target.closest('button[data-listing]');
 		if (!button) return;
-		const form = window.WPHubSpotForms.instance('enquiry');
+		const form = window.wp_hubspot_forms.instance('enquiry');
 		if (form.state === 'submitted') form.reload();
 		const result = await form.set({ gauserid: button.dataset.listing, gatrackid: button.dataset.agent }, { force: true });
 		print(`modal: ${button.dataset.listing} (${form.state})`, result);

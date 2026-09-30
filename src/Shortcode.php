@@ -2,12 +2,12 @@
 /**
  * The [hubspot] shortcode.
  *
- * @package WpHubspotForms
+ * @package ConstructiveMedia\HubSpot\Forms
  */
 
 declare( strict_types=1 );
 
-namespace WpHubspotForms;
+namespace ConstructiveMedia\HubSpot\Forms;
 
 use InvalidArgumentException;
 
@@ -23,9 +23,9 @@ use InvalidArgumentException;
  * Reserved attributes configure the form. Every other attribute is a value for the HubSpot
  * property of that name. Values come in three scopes, from least to most specific:
  *
- * - global:   the wp_hubspot_forms_global_values filter, for every form on the page.
- * - form:     the wp_hubspot_forms_form_values filter, for every copy of one form.
- * - instance: attributes and the wp_hubspot_forms_atts filter, for this copy only.
+ * - global:   the constructivemedia/hubspot/forms/global_values filter, for every form on the page.
+ * - form:     the constructivemedia/hubspot/forms/form_values filter, for every copy of one form.
+ * - instance: attributes and the constructivemedia/hubspot/forms/atts filter, for this copy only.
  *
  * Global and form values fill empty fields only. Instance values are this form's own
  * instructions, so they also replace HubSpot's defaults and prefill.
@@ -38,7 +38,7 @@ final class Shortcode {
 	public const RESERVED = [ 'form_id', 'portal_id', 'region', 'mode', 'business_unit_id', 'instance', 'class', 'options' ];
 
 	/**
-	 * Default settings, passed to the wp_hubspot_forms_settings filter.
+	 * Default settings, passed to the constructivemedia/hubspot/forms/settings filter.
 	 */
 	private const DEFAULTS = [
 		'portal_id' => '',
@@ -94,8 +94,8 @@ final class Shortcode {
 		$atts = array_filter( is_array( $atts ) ? $atts : [], static fn( $value ) => '' !== $value );
 
 		$form_id  = strtolower( (string) ( $atts['form_id'] ?? '' ) );
-		$defaults = (array) apply_filters( 'wp_hubspot_forms_settings', self::DEFAULTS, $form_id );
-		$atts     = (array) apply_filters( 'wp_hubspot_forms_atts', $atts + $defaults, $form_id );
+		$defaults = (array) apply_filters( 'constructivemedia/hubspot/forms/settings', self::DEFAULTS, $form_id );
+		$atts     = (array) apply_filters( 'constructivemedia/hubspot/forms/atts', $atts + $defaults, $form_id );
 
 		$settings = self::settings( $atts );
 		if ( null === $settings ) {
@@ -104,14 +104,14 @@ final class Shortcode {
 		$form_id = $settings['form_id'];
 
 		// Post content stores & as &amp;, so string values are decoded. A null from the
-		// wp_hubspot_forms_atts filter passes through: it clears the field.
+		// constructivemedia/hubspot/forms/atts filter passes through: it clears the field.
 		$values = array_map(
 			static fn( $value ) => is_string( $value ) ? html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) : $value,
 			array_diff_key( $atts, array_flip( self::RESERVED ) )
 		);
 
-		$this->global            ??= self::scope( apply_filters( 'wp_hubspot_forms_global_values', [] ) );
-		$this->forms[ $form_id ] ??= self::scope( apply_filters( 'wp_hubspot_forms_form_values', [], $form_id ) );
+		$this->global            ??= self::scope( apply_filters( 'constructivemedia/hubspot/forms/global_values', [] ) );
+		$this->forms[ $form_id ] ??= self::scope( apply_filters( 'constructivemedia/hubspot/forms/form_values', [], $form_id ) );
 
 		$data = $settings + [
 			'options' => (object) array_intersect_key( (array) ( $atts['options'] ?? [] ), array_flip( self::OPTIONS ) ),
