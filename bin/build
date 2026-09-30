@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Builds dist/wp-hubspot-forms-<version>.zip containing only what the plugin needs at runtime.
+# Run through `ddev composer build`, which runs the tests and coding standards first.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+version=$(sed -n 's/^ \* Version: *//p' wp-hubspot-forms.php)
+require() { grep -q "$1" "$2" || { echo "Version mismatch: $2 has no \"$1\" (header says $version)." >&2; exit 1; }; }
+require "const VERSION = '$version';" wp-hubspot-forms.php
+require "^Stable tag: $version\$" readme.txt
+require "^## $version" CHANGELOG.md
+
+rm -rf dist
+mkdir -p dist/wp-hubspot-forms
+cp -r wp-hubspot-forms.php readme.txt README.md CHANGELOG.md src assets dist/wp-hubspot-forms/
+(cd dist && zip -qr "wp-hubspot-forms-$version.zip" wp-hubspot-forms)
+echo "Built dist/wp-hubspot-forms-$version.zip"

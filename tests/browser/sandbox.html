@@ -1,0 +1,167 @@
+<!-- wp:html -->
+<style>
+	#sandbox { --gap: 1rem; display: grid; gap: var(--gap); font-size: 15px; }
+	#sandbox .note { padding: .75rem 1rem; background: #fff4e5; border-left: 4px solid #f59e0b; }
+	#sandbox .forms { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+	#sandbox .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
+	#sandbox .card h4 { margin: 0 0 .5rem; font-size: 14px; }
+	#sandbox .card code { font-size: 12px; }
+	#sandbox .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+	#sandbox button { font: inherit; font-size: 13px; padding: .4rem .7rem; border: 1px solid #888; border-radius: 6px; background: #f6f6f6; cursor: pointer; }
+	#sandbox button:hover { background: #e9e9e9; }
+	#sandbox pre { max-height: 420px; overflow: auto; background: #111; color: #d7ffd7; padding: 1rem; border-radius: 8px; font-size: 12px; white-space: pre-wrap; }
+	#enquiry { width: min(640px, 92vw); border: 0; border-radius: 10px; padding: 1.25rem; }
+	#enquiry::backdrop { background: rgb(0 0 0 / .5); }
+</style>
+
+<div id="sandbox">
+	<p class="note"><strong>Sandbox.</strong> These are public HubSpot test forms that belong to other portals: <strong>don't submit them</strong>. Add your own forms by editing this page (admin / admin). The console has debug logging on; everything below also logs into the panel at the bottom.</p>
+
+	<div class="forms">
+		<div class="card">
+			<h4>Legacy form A, copy 1: <code>instance="header"</code></h4>
+			<p><code>gauserid="U-HEADER"</code> as an attribute</p>
+			[hubspot form_id="1383c7ad-a822-4cc9-8b1e-c18eb555bcc7" portal_id="53" region="na1" instance="header" name="header" gauserid="U-HEADER"]
+		</div>
+		<div class="card">
+			<h4>Legacy form A, copy 2: <code>instance="footer"</code></h4>
+			<p>No attributes: same form, separate instance</p>
+			[hubspot form_id="1383c7ad-a822-4cc9-8b1e-c18eb555bcc7" portal_id="53" region="na1" instance="footer" name="footer"]
+		</div>
+		<div class="card">
+			<h4>v4 iframe: <code>mode="modern-iframe"</code></h4>
+			<p><code>firstname="Grace"</code> as an attribute</p>
+			[hubspot form_id="3b41cfa2-ece1-42b5-8e01-0e6092562eee" portal_id="502973" region="na2" mode="modern-iframe" instance="v4-iframe" firstname="Grace"]
+		</div>
+		<div class="card">
+			<h4>v4 developer embed: <code>mode="modern"</code></h4>
+			<p>Rendered in the page</p>
+			[hubspot form_id="3b41cfa2-ece1-42b5-8e01-0e6092562eee" portal_id="502973" region="na2" mode="modern" instance="v4-html"]
+		</div>
+	</div>
+
+	<div class="card">
+		<h4>Scopes, fill vs force</h4>
+		<div class="actions">
+			<button data-run="global">Global: gaclientid, firstname</button>
+			<button data-run="formFill">Form A: subscribersource_2 = Web (fill)</button>
+			<button data-run="formForce">Form A: subscribersource_2 = Web (force)</button>
+			<button data-run="headerOnly">Header only: gauserid = H-1</button>
+			<button data-run="typeThenGlobal">Type in footer email, then global set</button>
+		</div>
+	</div>
+
+	<div class="card">
+		<h4>Field types and values</h4>
+		<div class="actions">
+			<button data-run="multi">Header: content_language = English + German (hidden multi-checkbox)</button>
+			<button data-run="zero">Footer: gatrackid = 0</button>
+			<button data-run="clear">Footer: gatrackid = null (clear)</button>
+			<button data-run="v4Fill">v4 iframe: company = Acme, plus a missing field</button>
+			<button data-run="v4Force">v4 iframe: firstname = Ada (force)</button>
+			<button data-run="v4Html">v4 developer: firstname + company</button>
+		</div>
+	</div>
+
+	<div class="card">
+		<h4>Modal re-used per listing (container created on open, removed on close)</h4>
+		<div class="actions">
+			<button data-listing="L-1001" data-agent="alice@example.com">Enquire about listing L-1001</button>
+			<button data-listing="L-2002" data-agent="bob@example.com">Enquire about listing L-2002</button>
+		</div>
+		<p>The listing goes into <code>gauserid</code> and the agent into <code>gatrackid</code>, because the test form has no listing fields.</p>
+	</div>
+
+	<div class="card">
+		<h4>Inspect, reload, deprecated API</h4>
+		<div class="actions">
+			<button data-run="inspect">Inspect all forms</button>
+			<button data-run="reload">Reload the header form</button>
+			<button data-run="deprecated">Old CMHubspotForms.setFieldValues (footer)</button>
+			<button data-run="clearLog">Clear log</button>
+		</div>
+	</div>
+
+	<pre id="sandbox-log">Waiting for forms…</pre>
+</div>
+
+<dialog id="enquiry">
+	<p><button data-close>Close</button> <strong id="enquiry-title"></strong></p>
+	<div id="enquiry-slot"></div>
+</dialog>
+
+<template id="enquiry-form">[hubspot form_id="1383c7ad-a822-4cc9-8b1e-c18eb555bcc7" portal_id="53" region="na1" instance="enquiry" name="enquiry"]</template>
+
+<script>
+(() => {
+	const FORM_A = '1383c7ad-a822-4cc9-8b1e-c18eb555bcc7';
+	const log = document.getElementById('sandbox-log');
+	const print = (label, value) => {
+		log.textContent = `${new Date().toLocaleTimeString()}  ${label}\n${value === undefined ? '' : JSON.stringify(value, null, 2)}\n\n${log.textContent}`;
+	};
+	(window.WPHubSpotForms ||= []).push((api) => { api.debug = true; });
+
+	for (const type of ['ready', 'apply', 'submitted']) {
+		document.addEventListener(`wphsf:${type}`, (event) => {
+			const { instance, applied, skipped } = event.detail;
+			print(`event wphsf:${type} → ${instance.key}`, type === 'submitted' ? undefined : { applied, skipped });
+		});
+	}
+
+	const actions = {
+		global: (api) => api.set({ gaclientid: 'G-123', firstname: 'Global Ann' }),
+		formFill: (api) => api.form(FORM_A).set({ subscribersource_2: 'Web' }),
+		formForce: (api) => api.form(FORM_A).set({ subscribersource_2: 'Web' }, { force: true }),
+		headerOnly: (api) => api.instance('header').set({ gauserid: 'H-1' }),
+		typeThenGlobal: (api) => {
+			const email = api.instance('footer').form.querySelector('input[name=email]');
+			email.value = 'visitor@example.com';
+			email.dispatchEvent(new Event('input', { bubbles: true })); // Stands in for the visitor typing.
+			return api.set({ email: 'plugin@example.com' });
+		},
+		multi: (api) => api.instance('header').set({ content_language: ['English', 'German'] }, { force: true }),
+		zero: (api) => api.instance('footer').set({ gatrackid: 0 }),
+		clear: (api) => api.instance('footer').set({ gatrackid: null }),
+		v4Fill: (api) => api.instance('v4-iframe').set({ company: 'Acme', not_a_field: 'x' }),
+		v4Force: (api) => api.instance('v4-iframe').set({ firstname: 'Ada' }, { force: true }),
+		v4Html: (api) => api.instance('v4-html').set({ firstname: 'Linus', company: 'Kernel Co' }),
+		inspect: (api) => { const all = api.instances().map((form) => form.inspect()); console.table(all); return all; },
+		reload: (api) => { api.instance('header').reload(); return 'reloading; watch for wphsf:ready'; },
+		deprecated: () => { window.CMHubspotForms.setFieldValues('.hs-form-footer', { gatrackid: 'OLD-API' }); return 'sent (see the console warning); inspect to check'; },
+		clearLog: () => { log.textContent = ''; },
+	};
+
+	document.getElementById('sandbox').addEventListener('click', async (event) => {
+		const button = event.target.closest('button[data-run]');
+		if (!button) return;
+		const api = window.WPHubSpotForms;
+		try {
+			const result = await actions[button.dataset.run](api);
+			if (button.dataset.run !== 'clearLog') print(button.textContent, result);
+		} catch (error) {
+			print(`${button.textContent} failed`, String(error));
+		}
+	});
+
+	// The modal: values first (stored until the form exists), then the container is inserted and renders.
+	const dialog = document.getElementById('enquiry');
+	const slot = document.getElementById('enquiry-slot');
+	document.getElementById('sandbox').addEventListener('click', async (event) => {
+		const button = event.target.closest('button[data-listing]');
+		if (!button) return;
+		const form = window.WPHubSpotForms.instance('enquiry');
+		if (form.state === 'submitted') form.reload();
+		const result = await form.set({ gauserid: button.dataset.listing, gatrackid: button.dataset.agent }, { force: true });
+		print(`modal: ${button.dataset.listing} (${form.state})`, result);
+		document.getElementById('enquiry-title').textContent = `Enquiry: ${button.dataset.listing}`;
+		if (!slot.firstElementChild) slot.append(document.getElementById('enquiry-form').content.cloneNode(true));
+		dialog.showModal();
+	});
+	dialog.querySelector('[data-close]').addEventListener('click', () => {
+		dialog.close();
+		slot.replaceChildren(); // Like modal libraries that remove their content.
+		print('modal closed: container removed');
+	});
+})();
+</script>
+<!-- /wp:html -->

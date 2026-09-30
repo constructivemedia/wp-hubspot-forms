@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+## Description: Install a WordPress test site in wp/ with this plugin linked and active, plus a sandbox page
+## Usage: setup
+## Example: "ddev setup"
+
+set -euo pipefail
+
+SITE_URL="https://wp-hubspot-forms.ddev.site"
+PLUGIN_SLUG="wp-hubspot-forms"
+
+cd "$DDEV_APPROOT"
+
+ddev start
+
+if [ ! -f wp/wp-load.php ]; then
+  ddev wp core download
+fi
+
+if ! ddev wp core is-installed >/dev/null 2>&1; then
+  ddev wp core install \
+    --url="$SITE_URL" \
+    --title="WP HubSpot Forms (dev)" \
+    --admin_user=admin \
+    --admin_password=admin \
+    --admin_email=admin@example.com \
+    --skip-email
+fi
+
+# Symlink the repo root (the plugin) into the WordPress plugins directory.
+mkdir -p wp/wp-content/plugins
+ln -sfn ../../.. "wp/wp-content/plugins/$PLUGIN_SLUG"
+
+ddev wp plugin activate "$PLUGIN_SLUG"
+ddev composer install
+
+# A sandbox page with public HubSpot test forms; tests/browser/run.mjs drives it.
+PAGE_ID=$(ddev wp post list --post_type=page --name=sandbox --format=ids)
+if [ -n "$PAGE_ID" ]; then
+  ddev wp post update "$PAGE_ID" tests/browser/sandbox.html >/dev/null
+else
+  ddev wp post create tests/browser/sandbox.html --post_type=page --post_status=publish --post_name=sandbox --post_title="HubSpot Forms sandbox" >/dev/null
+fi
+
+echo
+echo "Site:  $SITE_URL"
+echo "Admin: $SITE_URL/wp-admin  (admin / admin)"
+echo "Sandbox: $SITE_URL/sandbox/"

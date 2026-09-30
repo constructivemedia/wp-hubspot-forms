@@ -1,0 +1,23 @@
+# WordPress test site (recreated by `ddev setup`)
+/wp/
+
+# Release builds (bin/build)
+/dist/
+
+# Dependencies
+/vendor/
+/node_modules/
+/composer.lock
+
+# Kept locally, not in the repository
+/.editorconfig
+
+# Local tooling
+/.claude/
+/CLAUDE.md
+/CLAUDE.local.md
+/docs/superpowers/
+/.phpunit.cache/
+.phpunit.result.cache
+*.log
+.DS_Store

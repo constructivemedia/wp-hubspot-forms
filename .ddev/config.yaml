@@ -1,0 +1,4 @@
+name: wp-hubspot-forms
+type: wordpress
+docroot: wp
+php_version: "8.4"

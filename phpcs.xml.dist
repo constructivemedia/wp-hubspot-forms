@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ruleset name="WP HubSpot Forms">
+	<description>WordPress coding standards for the wp-hubspot-forms plugin.</description>
+
+	<file>wp-hubspot-forms.php</file>
+	<file>src</file>
+	<exclude-pattern>/.ddev/*</exclude-pattern>
+	<exclude-pattern>/wp/*</exclude-pattern>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<rule ref="WordPress">
+		<!-- Modern PHP (8.1+): short arrays and PSR-style class file names. -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+		<exclude name="WordPress.Files.FileName"/>
+	</rule>
+
+	<!-- The deprecated layer keeps the old plugin's hook names (constructivemedia/hubspot/forms/*). -->
+	<rule ref="WordPress.NamingConventions.ValidHookName">
+		<exclude-pattern>src/deprecated.php</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound">
+		<exclude-pattern>src/deprecated.php</exclude-pattern>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.7"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="wp-hubspot-forms"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="wp_hubspot_forms"/>
+				<element value="WP_HUBSPOT_FORMS"/>
+				<element value="WpHubspotForms"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>
