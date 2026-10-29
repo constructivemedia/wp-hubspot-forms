@@ -51,6 +51,42 @@ add_action(
 );
 
 /*
+ * Remembers how each visitor arrived, and fills the HubSpot properties the site maps to that on
+ * every form:
+ *
+ *     add_filter( 'constructivemedia/hubspot/forms/entry', static fn( array $map ): array => $map + [ 'utm_source' => 'utm_source', 'landing_page' => 'url' ] );
+ *
+ * assets/entry.js does both in the visitor's browser, on every page, so a cached page is the same
+ * for everyone: the page carries only the map. Without a map, nothing is loaded.
+ */
+add_action(
+	'wp_footer',
+	static function (): void {
+		$map = array_filter( (array) Shortcode::scope( apply_filters( 'constructivemedia/hubspot/forms/entry', [] ) ), 'is_string' );
+		if ( ! $map ) {
+			return;
+		}
+
+		$tag = [
+			'type' => 'application/json',
+			'id'   => 'wp-hubspot-forms-entry',
+		];
+		wp_print_inline_script_tag( (string) wp_json_encode( $map, JSON_HEX_TAG | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ), $tag );
+
+		wp_enqueue_script(
+			'wp-hubspot-forms-entry',
+			plugins_url( 'assets/entry.js', __FILE__ ),
+			[],
+			VERSION,
+			[
+				'in_footer' => true,
+				'strategy'  => 'defer',
+			]
+		);
+	}
+);
+
+/*
  * Keeps sites built on the Constructive Media HubSpot Forms plugin working: its hooks, attributes,
  * defaults and browser API. Deprecated, and removed in 2.0. Sites that don't need it turn it off
  * from a plugin or the theme's functions.php:

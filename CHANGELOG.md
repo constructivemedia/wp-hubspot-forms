@@ -2,6 +2,16 @@
 
 Notable changes to WP HubSpot Forms. Versions follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- **Visitor entry.** The plugin can remember how each visitor arrived (the landing page, the referring site and the landing page's parameters, such as UTM parameters and ad click ids) until they have been away for three hours, and fill the HubSpot properties a site maps with the new `constructivemedia/hubspot/forms/entry` filter on every form. Arriving with campaign parameters starts a new entry. The entry is made, kept and applied in the browser, from the landing page on, so it works with full-page caching; PHP doesn't see it. Nothing loads until a site maps a property.
+
+### Changed
+
+- Deprecated layer: a form with both `on_submit` and `gated_url` follows `on_submit`, so an `atts` callback that turns `gated_url` into `on_submit="redirect"` redirects.
+
 ## 1.0.1 - 2026-09-30
 
 Moves the plugin's names under the `constructivemedia` convention shared by Constructive Media plugins. 1.0.0 was installed on Constructive Media sites only, so this is a patch release with breaking renames rather than a major version.

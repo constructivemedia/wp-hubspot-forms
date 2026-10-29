@@ -6,11 +6,12 @@ Embed HubSpot forms with `[hubspot]`, and fill their fields by HubSpot property 
 - Values in three scopes: every form, every copy of one form, or one copy.
 - Only fields a form actually has are filled. HubSpot's defaults and the visitor's input are kept unless a value is forced.
 - Forms added later, such as in modals or AJAX content, render and fill too.
+- It can remember how each visitor arrived (UTM parameters, ad click ids, the landing page and the referrer) and fill the properties you map to that on every form.
 - No settings screen, no database tables. Everything is a shortcode, a filter or a JavaScript call.
 
 Requires PHP 8.1 and WordPress 6.7. It replaces the Constructive Media HubSpot Forms plugin; see [Upgrading](#upgrading-from-constructive-media-hubspot-forms).
 
-**Contents:** [Quick start](#quick-start), [Shortcode](#the-shortcode), [Modes](#modes-legacy-and-v4), [Values](#values), [PHP hooks](#php-hooks), [JavaScript API](#javascript-api), [Debugging](#debugging), [HubSpot setup](#hubspot-setup), [Upgrading](#upgrading-from-constructive-media-hubspot-forms), [Development](#development), [Releasing](#releasing).
+**Contents:** [Quick start](#quick-start), [Shortcode](#the-shortcode), [Modes](#modes-legacy-and-v4), [Values](#values), [Visitor entry](#visitor-entry), [PHP hooks](#php-hooks), [JavaScript API](#javascript-api), [Debugging](#debugging), [HubSpot setup](#hubspot-setup), [Upgrading](#upgrading-from-constructive-media-hubspot-forms), [Development](#development), [Releasing](#releasing).
 
 ## Quick start
 
@@ -150,6 +151,36 @@ PHP drops entries it can't send, and reports them with `WP_DEBUG`: keys that are
 
 Use HubSpot's internal property names, not the labels. A bare name, such as `listing_id`, matches that property on any object. Qualify it to target one object's field: `0-1/` is contacts, `0-2/` companies, and `2-...` custom objects, as in `0-2/name`.
 
+## Visitor entry
+
+The plugin can remember how each visitor arrived, and fill HubSpot properties from it on every form. Map the properties in the theme or a small plugin:
+
+```php
+add_filter(
+	'constructivemedia/hubspot/forms/entry',
+	static fn( array $map ): array => $map + [
+		'utm_source'   => 'utm_source',
+		'utm_medium'   => 'utm_medium',
+		'utm_campaign' => 'utm_campaign',
+		'utm_term'     => 'utm_term',
+		'utm_content'  => 'utm_content',
+		'gclid'        => 'gclid',
+		'landing_page' => 'url',
+		'referrer'     => 'referrer',
+	]
+);
+```
+
+Each key is a HubSpot property. Each value says what fills it: `url` is the page the visitor landed on, with its parameters; `referrer` is the address of the other site that sent them, if one did; any other value names a parameter of the landing page.
+
+- **A new entry starts** when the visitor arrives with campaign parameters: any `utm_*` parameter, an ad click id (`gclid`, `gbraid`, `wbraid`, `dclid`, `fbclid`, `msclkid`, `ttclid`, `twclid`, `li_fat_id`, `yclid`), or another parameter the map names. The old entry is forgotten whole, so an entry never mixes two campaigns.
+- **Everything else keeps it**: browsing the site, and coming back to it directly or from another site without campaign parameters, until the visitor has been away for three hours.
+- **Mapped properties are forced.** The entry's value replaces HubSpot's default and the value HubSpot prefills for a returning contact. A value set for one form or one copy (attributes, `atts`, `form_values`, `form().set()`, `instance().set()`) still wins.
+- **A property the entry has no value for is left alone.** It keeps HubSpot's default, or, for a returning contact, the value HubSpot prefills from their last submission. To keep those old values out, give the field a default in HubSpot (HubSpot doesn't put a returning contact's values into a hidden field that has one), or turn off prefill on the form: "Pre-populate fields with known values" in the legacy editor, "Pre-populate form fields for returning visitors" in the new one.
+- **The landing page is filled too.** The entry is made in the browser from the page the visitor lands on, and that page's forms are filled from it straight away. `localStorage` only carries it to later pages; if storage is blocked, the entry lasts for that page only.
+- **Caching is safe, and PHP never sees the entry.** The entry is kept and applied in the visitor's browser, and the page carries only the map, so a cached page is the same for everyone. For the same reason, `atts`, `global_values` and other PHP callbacks can't read the entry: entry values reach forms through the map.
+- **Without a map**, the plugin loads and stores nothing for it. Consent tools can hold back its script, `assets/entry.js`, until the visitor agrees. Optimisers that delay JavaScript until the visitor interacts, such as WP Rocket's "Delay JavaScript execution", must exclude it, or a visitor who leaves the landing page at once isn't recorded.
+
 ## PHP hooks
 
 | Filter | Arguments | Use it for |
@@ -158,6 +189,7 @@ Use HubSpot's internal property names, not the labels. A bare name, such as `lis
 | `constructivemedia/hubspot/forms/atts` | `array $atts, string $form_id` | This form's attributes, merged with the settings. Change settings, or add values that behave like attributes. |
 | `constructivemedia/hubspot/forms/global_values` | `array $values` | Values for every form. Runs once per request. |
 | `constructivemedia/hubspot/forms/form_values` | `array $values, string $form_id` | Values for every copy of one form. Runs once per form per request. |
+| `constructivemedia/hubspot/forms/entry` | `array $map` | HubSpot properties to fill from the [visitor entry](#visitor-entry). Runs once per page. |
 | `constructivemedia/hubspot/forms/legacy` | `bool $enabled` | Return `false` to turn off the [deprecated layer](#upgrading-from-constructive-media-hubspot-forms). Add it in a plugin or `functions.php`; it is read on `after_setup_theme`. |
 
 `$form_id` is always lower case.
@@ -193,7 +225,7 @@ add_filter( 'constructivemedia/hubspot/forms/global_values', static fn( array $v
 
 `+=` keeps whatever the shortcode already set. Assign with `$atts['listing_id'] = ...` to override it.
 
-**Caching:** values from PHP become part of the page's HTML, so full-page caching serves them to every visitor. Set visitor-specific values, such as UTM parameters or a logged-in member's details, from JavaScript.
+**Caching:** values from PHP become part of the page's HTML, so full-page caching serves them to every visitor. Take UTM parameters from the [visitor entry](#visitor-entry), and set other visitor-specific values, such as a logged-in member's details, from JavaScript.
 
 **Forms loaded later:** the shortcode loads the script on the pages it renders on. If forms arrive later on a page without one, for example from an AJAX response, load it yourself with `wp_enqueue_script( 'wp-hubspot-forms' )`. While the deprecated layer is on, it loads on every page.
 
@@ -273,14 +305,7 @@ Events bubble from the container, so one listener on `document` hears every form
 
 ### Examples
 
-UTM parameters from the address, for every form:
-
-```js
-(window.wp_hubspot_forms ||= []).push((forms) => {
-	const utm = [...new URLSearchParams(location.search)].filter(([name]) => name.startsWith('utm_'));
-	forms.set(Object.fromEntries(utm));
-});
-```
+UTM parameters and the landing page come from the [visitor entry](#visitor-entry), which keeps them across pages.
 
 One enquiry form in a modal, reused for each listing:
 
@@ -311,6 +336,7 @@ document.addEventListener('constructivemedia/hubspot/forms/submitted', ({ detail
 
 - **`wp_hubspot_forms.debug = true`** logs every `ready`, `apply` and `submitted` event with its result, and containers the script ignored, in the console.
 - **`wp_hubspot_forms.instances().map((form) => form.inspect())`** shows every form's state and, per field, `value` (what it holds), `hubspot` (what HubSpot put there), `written` (what the plugin wrote), `want` (the value the plugin resolved, with its scope, source and force) and `last` (the last outcome). Legacy values are live; v4 values are as of the last read, and `await form.get(name)` reads afresh.
+- **`localStorage.wp_hubspot_forms_entry`** is the visitor's entry: `url`, `referrer`, and `seen`, the time of their last page view. Remove it to start a fresh one.
 - **`WP_DEBUG`** reports invalid settings and dropped values from PHP.
 - **Console warnings** starting with `[wp_hubspot_forms]` report forms that failed: a HubSpot script that didn't load, a render error, or a v4 form that stopped answering. They also flag a new-editor form placed in legacy mode.
 
@@ -391,6 +417,8 @@ add_filter(
 );
 ```
 
+Sites that define `get_website_entry_url()` to track UTM parameters can use the [visitor entry](#visitor-entry) instead. Map the landing page to a property of its own, such as `landing_page`, rather than giving `website_url` a second meaning. Then remove the function, after any other code that calls it, such as Gravity Forms filters. While it exists, the deprecated layer's `website` and `website_url` come from it, as instance values that win over the entry's. Once it's gone, nothing fills them. HubSpot records the page a form was sent from itself; a portal that relies on `website_url` can set it in the browser with `forms.set({ website_url: location.href })`.
+
 The older `hubspot.php` also filled some properties from the site's own logic, such as a region taken from a site class and a value fixed for one page. The plugin doesn't hard-code business values, so sites that need them add their own, for example:
 
 ```php
@@ -414,6 +442,7 @@ add_filter(
 - The plugin's script renders each form into its container. The shortcode no longer prints inline scripts.
 - Legacy forms get a HubSpot `formInstanceId`, which HubSpot appends to the form's and fields' element ids, as in `hsForm_{form id}_enquiry-1`. The suffix changes with every render, so CSS and scripts should select by class or attribute instead of those ids.
 - `CMHubspotForms` setters apply asynchronously, once the form is ready. Its getters return v4 values as of the last read.
+- A form with both `on_submit` and `gated_url` follows `on_submit`, so an `atts` callback can turn `gated_url` into a redirect.
 - The `atts` filter keeps its name, so old and new callbacks share it and it raises no notice. Its result goes through the old pipeline: `mode` and `region` are normalised, and an unknown `mode` renders as `legacy` instead of being rejected. Values from `atts` keep this plugin's meaning (`null` clears, `0` and `false` are values); only the old `form_data` filter's values and the automatic website values are dropped when empty, as the old plugin did.
 
 ## Development
@@ -433,9 +462,10 @@ ddev composer build         # Tests, coding standards, then the release zip
 
 | Path | |
 |---|---|
-| `wp-hubspot-forms.php` | Registers the script and the shortcode, and switches the deprecated layer on. |
+| `wp-hubspot-forms.php` | Registers the script and the shortcode, loads the visitor entry, and switches the deprecated layer on. |
 | `src/Shortcode.php` | `[hubspot]`: settings, value scopes and output. |
 | `assets/wp-hubspot-forms.js` | The value store, the legacy and v4 adapters, and the API. |
+| `assets/entry.js` | The visitor entry: remembers how the visitor arrived, and sets the mapped properties. |
 | `src/deprecated.php`, `assets/deprecated.js` | The old plugin's hooks, attributes and browser API. Removed in 2.0. |
 | `tests/` | PHPUnit tests and the browser test. |
 | `bin/build` | Builds the release zip. |

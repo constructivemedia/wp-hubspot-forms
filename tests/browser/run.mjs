@@ -198,6 +198,26 @@ async function scenario() {
 	return checks;
 }
 
+/** Runs inside the sandbox with ?entry: waits for the forms, then reads the fields the visitor entry fills. */
+async function entryFields() {
+	const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+	const ready = () => window.wp_hubspot_forms?.instances?.().length === 4 && window.wp_hubspot_forms.instances().every((f) => f.state === 'ready');
+	for (let spent = 0; spent < 30000 && !ready(); spent += 250) await wait(250);
+
+	const H = window.wp_hubspot_forms;
+	const field = (key, name) => H.instance(key).inspect().fields[`0-1/${name}`]?.value;
+	return {
+		source: field('footer', 'gatrackid'),
+		medium: field('footer', 'gaclientid'),
+		content: field('footer', 'subscribersource_2'),
+		gclid: field('footer', 'gauserid'),
+		attribute: field('header', 'gauserid'),
+		url: field('footer', 'email'),
+		referrer: await H.instance('v4-html').get('company'),
+		promo: await H.instance('v4-html').get('firstname'),
+	};
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const port = 9300 + (process.pid % 500);
 const profile = mkdtempSync(join(tmpdir(), 'wphsf-'));
@@ -272,6 +292,50 @@ try {
 		pass: Boolean(submission?.body.includes('"businessUnitId":"1234567"')),
 		detail: submission?.url ?? 'no submission request',
 	});
+
+	// The visitor entry, over page views that each have their own address and referrer.
+	const site = new URL(url).origin;
+	const view = async (path, referrer) => {
+		await send('Page.navigate', { url: site + path, ...(referrer && { referrer }) });
+		await sleep(1500);
+		const { result: read } = await send('Runtime.evaluate', { expression: `(${entryFields})()`, awaitPromise: true, returnByValue: true, timeout: 60000 });
+		return read?.result?.value ?? {};
+	};
+	const entry = (name, pass, seen) => checks.push({ name: `entry: ${name}`, pass: Boolean(pass), detail: seen });
+
+	/** Moves the stored entry's last page view back in time. */
+	const age = (ms) => send('Runtime.evaluate', { expression: `(() => { const entry = JSON.parse(localStorage.getItem('wp_hubspot_forms_entry')); entry.seen -= ${ms}; localStorage.setItem('wp_hubspot_forms_entry', JSON.stringify(entry)); })()` });
+	const HOUR = 3600 * 1000;
+
+	// Each check fails if the rule it names breaks. Every page view starts with fresh forms, so a
+	// field holds only what this view's entry wrote, or HubSpot's default.
+	let seen = await view('/sandbox/?entry&utm_source=alpha&utm_medium=email');
+	entry('a campaign link fills the mapped fields', seen.source === 'alpha' && seen.medium === 'email' && seen.url === `${site}/sandbox/?entry&utm_source=alpha&utm_medium=email`, seen);
+	entry('a property the entry has no value for is left alone', seen.content === 'Other Source', seen);
+	seen = await view('/sandbox/?entry', 'https://www.google.com/');
+	entry('kept when another site sends the visitor back', seen.source === 'alpha' && seen.referrer === '', seen);
+	seen = await view('/sandbox/?entry');
+	entry('kept on a direct return', seen.source === 'alpha', seen);
+	seen = await view('/sandbox/?entry&gclid=G-1', 'https://www.google.com/');
+	entry('a click id starts a new entry, with the referring site', seen.gclid === 'G-1' && seen.source === '' && seen.referrer === 'https://www.google.com/', seen);
+	entry('an attribute beats the entry', seen.attribute === 'U-HEADER', seen);
+	seen = await view('/sandbox/?entry&utm_source=beta&utm_content=Web');
+	entry('a new campaign replaces the whole entry', seen.source === 'beta' && seen.gclid === '' && seen.referrer === '', seen);
+	entry('mapped values replace HubSpot defaults', seen.content === 'Web', seen);
+	seen = await view('/sandbox/?entry&fbclid=F-1');
+	entry('an unmapped click id starts a new entry', seen.source === '' && seen.url === `${site}/sandbox/?entry&fbclid=F-1`, seen);
+	seen = await view('/sandbox/?entry&utm_id=U-1');
+	entry('an unmapped utm_* parameter starts a new entry', seen.url === `${site}/sandbox/?entry&utm_id=U-1`, seen);
+	seen = await view('/sandbox/?entry&promo=P-1');
+	entry('a mapped parameter starts a new entry', seen.promo === 'P-1' && seen.url === `${site}/sandbox/?entry&promo=P-1`, seen);
+	await age(2 * HOUR);
+	await view('/sandbox/?entry', `${site}/news/`);
+	await age(2 * HOUR);
+	seen = await view('/sandbox/?entry', `${site}/news/`);
+	entry('kept while the visitor returns within three hours of each page view', seen.promo === 'P-1', seen);
+	await age(3 * HOUR + 60000);
+	seen = await view('/sandbox/?entry', `${site}/news/`);
+	entry('forgotten three hours after the last page view, and the site is no referrer', seen.promo === '' && seen.url === `${site}/sandbox/?entry` && seen.referrer === '', seen);
 
 	for (const { name, pass, detail } of checks) console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${pass || detail === undefined ? '' : `  ${JSON.stringify(detail)}`}`);
 	const failed = checks.filter((c) => !c.pass).length;

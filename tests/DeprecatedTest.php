@@ -114,6 +114,7 @@ final class DeprecatedTest extends TestCase {
 
 		$this->assertStringEndsWith( '<template class="wphsf-on-submit" data-redirect="https://example.com/thanks" data-delay="1"></template>', $after( [ 'form_id' => self::FORM, 'on_submit' => 'redirect', 'on_submit_url' => 'https://example.com/thanks' ] ) );
 		$this->assertStringContainsString( '<a href="https://example.com/brochure.pdf" target="_blank">', $after( [ 'form_id' => self::FORM, 'gated_url' => 'https://example.com/brochure.pdf' ] ) );
+		$this->assertStringEndsWith( 'data-redirect="https://example.com/brochure.pdf" data-delay="1"></template>', $after( [ 'form_id' => self::FORM, 'gated_url' => 'https://example.com/brochure.pdf', 'on_submit' => 'redirect', 'on_submit_url' => 'https://example.com/brochure.pdf' ] ), 'An explicit on_submit beats gated_url.' );
 		$this->assertArrayNotHasKey( 'on_submit', ShortcodeTest::render( [ 'form_id' => self::FORM, 'on_submit' => 'redirect' ] )[0]['scopes']['instance'] );
 	}
 

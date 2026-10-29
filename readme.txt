@@ -18,6 +18,7 @@ A plugin for developers. It has no settings screen: forms are placed with a shor
 * Values by HubSpot property name, for every form, for every copy of one form, or for one copy.
 * Only fields a form actually has are filled. HubSpot's defaults and what the visitor typed are kept unless a value is forced.
 * Forms added later, such as in modals or AJAX content, render and fill too.
+* Remembers how each visitor arrived, such as UTM parameters and the landing page, and fills the properties a site maps to that.
 * Replaces the Constructive Media HubSpot Forms plugin. Its hooks, attributes and browser API keep working, with deprecation notices, until 2.0.
 
 The full guide is README.md in the plugin folder.
@@ -42,7 +43,7 @@ In the browser console, run wp_hubspot_forms.debug = true, or wp_hubspot_forms.i
 
 = Does it work with full-page caching? =
 
-Yes. Values from PHP are part of the cached page, so set visitor-specific values, such as UTM parameters, from JavaScript.
+Yes. The visitor entry, with UTM parameters and the landing page, is kept and applied in the browser. Other values from PHP are part of the cached page, so set visitor-specific ones from JavaScript.
 
 == Changelog ==
 

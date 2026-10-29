@@ -33,6 +33,11 @@ ln -sfn ../../.. "wp/wp-content/plugins/$PLUGIN_SLUG"
 ddev wp plugin activate "$PLUGIN_SLUG"
 ddev composer install
 
+# With ?entry in the address, the sandbox's forms take values from the visitor entry. A copy, so
+# rerun setup after editing tests/browser/entry.php.
+mkdir -p wp/wp-content/mu-plugins
+cp tests/browser/entry.php wp/wp-content/mu-plugins/wp-hubspot-forms-entry.php
+
 # A sandbox page with public HubSpot test forms; tests/browser/run.mjs drives it.
 PAGE_ID=$(ddev wp post list --post_type=page --name=sandbox --format=ids)
 if [ -n "$PAGE_ID" ]; then

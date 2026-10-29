@@ -260,8 +260,9 @@ function after_render( string $output, string $tag, array|string $atts ): string
 		_deprecated_argument( '[hubspot]', esc_html( SINCE ), esc_html( $message ) );
 	}
 
+	// gated_url shows a download link, unless on_submit says what to do.
 	$gated = [];
-	if ( ! empty( $atts['gated_url'] ) ) {
+	if ( ! empty( $atts['gated_url'] ) && empty( $atts['on_submit'] ) ) {
 		$gated = [
 			'action' => 'html',
 			'html'   => sprintf(
