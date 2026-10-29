@@ -4,7 +4,7 @@ Tags: hubspot, forms, shortcode, marketing
 Requires at least: 6.7
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.1
+Stable tag: 1.1.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,10 @@ Yes. The visitor entry, with UTM parameters and the landing page, is kept and ap
 
 == Changelog ==
 
+= 1.1.0 =
+* Visitor entry: remembers how each visitor arrived, such as UTM parameters and the landing page, and fills the HubSpot properties a site maps to that.
+* Deprecated layer: a form with both on_submit and gated_url follows on_submit.
+
 = 1.0.1 =
 * Hooks, events, the JavaScript global and the PHP namespace move under the constructivemedia naming convention. See CHANGELOG.md for the renames.
 
@@ -54,6 +58,9 @@ Yes. The visitor entry, with UTM parameters and the landing page, is kept and ap
 * First release. Replaces Constructive Media HubSpot Forms 5.0.0.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Adds the visitor entry. Nothing changes until a site maps properties with the constructivemedia/hubspot/forms/entry filter.
 
 = 1.0.1 =
 Renames the plugin's hooks, events and JavaScript global; update your filters and scripts. See CHANGELOG.md.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       WP HubSpot Forms
  * Description:       Embed HubSpot forms with [hubspot] and populate their fields by property name from PHP and JavaScript.
- * Version:           1.0.1
+ * Version:           1.1.0
  * Requires at least: 6.7
  * Requires PHP:      8.1
  * Update URI:        false
@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The plugin version. It also versions the plugin's scripts, so browsers fetch them afresh after an update.
  */
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 
 require_once __DIR__ . '/src/Shortcode.php';
 require_once __DIR__ . '/src/deprecated.php';

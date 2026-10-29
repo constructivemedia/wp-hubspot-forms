@@ -2,7 +2,7 @@
 
 Notable changes to WP HubSpot Forms. Versions follow [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 1.1.0 - 2026-10-29
 
 ### Added
 
